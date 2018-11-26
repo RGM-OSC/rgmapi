@@ -245,5 +245,5 @@ Slim Framework source sode https://www.slimframework.com/.
 | `PHP > 5.5` | Not tested |
 
 ## License
-* Eyes Of Network is licensed under the GNU General Public License.
+* RGM is licensed under the GNU General Public License.
 * The Slim Framework is licensed under the MIT license.

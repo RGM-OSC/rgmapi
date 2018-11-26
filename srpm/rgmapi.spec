@@ -1,11 +1,11 @@
-Summary:        API for the EON suite.
+Summary:        API for the RGM suite.
 Name:           rgmapi
 Version:        1.0
 Release:        4.rgm
 Source:         https://github.com/EyesOfNetworkCommunity/%{name}/archive/master.tar.gz#/%{name}-%{version}.tar.gz
 Group:          Applications/System
 License:        GPL
-Vendor:         EyesOfNetwork Community
+Vendor:         RGM Community
 URL:            https://github.com/EyesOfNetworkCommunity/rgmapi
 Requires:	rgmweb
 
