@@ -253,6 +253,59 @@ class ObjectManager {
 		$logs = $this->getLogs($error, $success);
 		return $logs;
 	}
+
+    /* LILAC - Delete Parent to Host */
+    public function deleteParentFromExistingHost( $hostName, $ParentName, $exportConfiguration = FALSE ){
+        $error = "";
+        $success = "";
+        
+        $nhp = new NagiosHostPeer;
+        $host = $nhp->getByName($hostName);
+        
+        if(!$host) {
+            $error .= "Host $hostName not found\n";
+        }
+        
+        // Lauch actions if no errors
+        if(empty($error)) { 
+            if( $ParentName != NULL ){
+                //Delete a parent from a host
+                $Parent = new NagiosHostPeer;
+                
+                // Find host Parent
+                $tempParent = $Parent->getByName( $ParentName );
+                if(!$tempParent) {
+                    $error .= "Parent $tempParent not found\n";   
+                }
+
+                //If Parent exists
+                if($tempParent) {
+                    $c = new Criteria();
+                    $c->add(NagiosHostParentPeer::CHILD_HOST, $host->getId());
+                    $c->add(NagiosHostParentPeer::PARENT_HOST, $tempParent->getId());
+                    $c->setIgnoreCase(true);
+                    $membership = NagiosHostParentPeer::doSelectOne($c);
+                    
+                    //Test if Parent doesn't already exist
+                    if($membership) {
+                        $membership->delete();
+                        $success .= "The parent/child relationship between $hostName and $ParentName has been removed.\n";
+                    }
+                    else{
+                        $error .= "The parent/child relationship between $hostName and $ParentName doesn't exist\n";
+                    }
+                }    
+                
+                // Export
+                if( $exportConfiguration == TRUE )
+                    $this->exportConfigurationToNagios($error, $success);
+            }
+        }
+        
+        $logs = $this->getLogs($error, $success);
+        
+        return $logs;
+    }
     	
 	/* LILAC - Create Host Template */
     function createHostTemplate( $templateHostName, $exportConfiguration = FALSE ){
@@ -577,7 +630,37 @@ class ObjectManager {
         
         return $logs;
     }
-    
+ 
+    /* LILAC - Add Parent to Host */
+    public function addParentToExistingHost( $hostName, $ParentName, $exportConfiguration = FALSE ){
+        $error = "";
+        $success = "";
+        
+        $nhp = new NagiosHostPeer;
+        $host = $nhp->getByName($hostName);
+        
+        if(!$host) {
+            $error .= "Host $hostName not found\n";
+        }
+        
+        // Lauch actions if no errors
+        if(empty($error)) { 
+            if( $ParentName != NULL ){
+                //Add a parent to a host
+                $this->addParentToHost( $hostName, $ParentName, $error, $success );
+                
+                // Export
+                if( $exportConfiguration == TRUE )
+                    $this->exportConfigurationToNagios($error, $success);
+            }
+        }
+        
+        $logs = $this->getLogs($error, $success);
+        
+        return $logs;
+    }
+
+
 	/* LILAC - Add Contact */
     public function addContactToHost( $tempHost, $contactName, &$error, &$success, $exportConfiguration = FALSE ){
         $ncp = new NagiosContactPeer;
@@ -643,6 +726,46 @@ class ObjectManager {
         }
     }
  
+    /* LILAC - Add Parent */
+    public function addParentToHost( $tempHost, $ParentName, &$error, &$success, $exportConfiguration = FALSE ){
+        $Parent = new NagiosHostPeer;
+        $Child = new NagiosHostPeer;
+        
+        // Find host Parent
+        $tempParent = $Parent->getByName( $ParentName );
+        if(!$tempParent) {
+            $error .= "Parent $tempParent not found\n";   
+        }
+
+        // Find the child host 
+        $tempChild = $Child->getByName( $tempHost );
+        if(!$tempChild) {
+            $error .= "Child $tempChild not found\n";   
+        }
+        
+        //If Parent exists
+        if($tempParent) {
+            $c = new Criteria();
+            $c->add(NagiosHostParentPeer::CHILD_HOST, $tempChild->getId());
+            $c->add(NagiosHostParentPeer::PARENT_HOST, $tempParent->getId());
+            $c->setIgnoreCase(true);
+            $membership = NagiosHostParentPeer::doSelectOne($c);
+            
+            //Test if Parent doesn't already exist
+            if($membership) {
+                $error .= "That parent already exists in that list!\n";
+            }
+            else{
+                $parentRelationship = new NagiosHostParent();
+                $parentRelationship->setChildHost($tempChild->getId());
+                $parentRelationship->setParentHost($tempParent->getId());
+                $parentRelationship->save();
+                $success .= "The parent/child relationship between $tempHost and $ParentName is set successfully\n";
+            }
+        }    
+    }
+
+
 	/* LILAC - Create Service */
     public function createService( $hostName, $services, $host = NULL, $exportConfiguration = FALSE ){
         
@@ -717,6 +840,39 @@ class ObjectManager {
 		return true;
 		
 	}
+
+    /* LILAC - List Hosts by Address */
+    public function getHostByAddress( $hostAddress ){
+        $error = "";
+        $success = "";
+        
+        $c = new Criteria();
+        $Where1 = $c->getNewCriterion(NagiosHostPeer::NAME, "%" , Criteria::LIKE);
+        $Where2 = $c->getNewCriterion(nagiosHostPeer::ADDRESS, "%" . $hostAddress . "%", Criteria::LIKE);
+        $Where1->addAnd($Where2);
+        $c->add($Where1);
+        $c->setIgnoreCase(true);
+        $matchedHosts = NagiosHostPeer::doSelect($c);
+        
+
+        if(count($matchedHosts)) {
+            foreach($matchedHosts as $host) {
+                $tempHost=$host->getName();
+                if($success) {
+                    $success .= ",$tempHost";
+                } else {
+                    $success .= "$tempHost";
+                }
+            }
+        } else {
+            $error .= "There is no host with this address!\n";
+        }
+
+        $logs = $this->getLogs($error, $success);
+        
+        return $logs;
+    }
+    
 	
     /* RGMWEB - Create User */
     public function createUser($userName, $userMail, $admin = false, $filterName = "", $filterValue = "", $exportConfiguration = FALSE){

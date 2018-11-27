@@ -26,6 +26,7 @@ $app->get('/getAuthenticationStatus','getAuthenticationStatus');
 addRoute('post', '/exportConfiguration', 'exportConfiguration');
 addRoute('post', '/createHost', 'createHost');
 addRoute('post', '/deleteHost', 'deleteHost');
+addRoute('post', '/deleteParentFromExistingHost', 'deleteParentFromExistingHost');
 addRoute('post', '/createHostTemplate', 'createHostTemplate');
 addRoute('post', '/addHostTemplateToHost', 'addHostTemplateToHost');
 addRoute('post', '/addContactToHostTemplate', 'addContactToHostTemplate');
@@ -34,11 +35,13 @@ addRoute('post', '/createService', 'createService');
 addRoute('post', '/createUser','createUser');
 addRoute('post', '/addContactToHost', 'addContactToExistingHost');
 addRoute('post', '/addContactGroupToHost', 'addContactGroupToExistingHost');
+addRoute('post', '/addParentToHost', 'addParentToExistingHost');
 addRoute('post', '/listNagiosBackends', 'listNagiosBackends', 'readonly');
 addRoute('post', '/listNagiosObjects', 'listNagiosObjects', 'readonly');
 addRoute('post', '/listNagiosStates', 'listNagiosStates', 'readonly');
 addRoute('post', '/addEventBroker','addEventBroker');
 addRoute('post', '/delEventBroker','delEventBroker');
+addRoute('post', '/getHostByAddress','getHostByAddress');
 
 /* Kind of framework to add routes very easily */
 function addRoute($httpMethod, $routeName, $methodName, $right="admin"){
