@@ -3,6 +3,7 @@ Name:           rgmapi
 Version:1.1
 Release:        1.rgm
 Source:         %{name}-%{version}.tar.gz
+Source1:rgmapi.conf
 Group:          Applications/System
 License:        GPL
 Vendor:         RGM Community
@@ -26,7 +27,7 @@ RGM includes a web-based "RESTful" API (Application Programming Interface) calle
 install -d -m0755 %{buildroot}%{datadir}
 install -d -m0755 %{buildroot}%{_sysconfdir}/httpd/conf.d
 cp -afv ./* %{buildroot}%{datadir}
-install -m 640 rgmapi.conf %{buildroot}%{_sysconfdir}/httpd/conf.d/
+install -m 640 %{source1} %{buildroot}%{_sysconfdir}/httpd/conf.d/
 rm -rf %{buildroot}%{datadir}/%{name}.spec
 
 %post
