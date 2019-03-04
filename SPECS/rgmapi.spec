@@ -2,7 +2,7 @@ Summary:        API for the RGM suite.
 Name:           rgmapi
 Version:1.1
 Release:        1.rgm
-Source:         https://github.com/EyesOfNetworkCommunity/%{name}/archive/master.tar.gz#/%{name}-%{version}.tar.gz
+Source:         %{name}-%{version}.tar.gz
 Group:          Applications/System
 License:        GPL
 Vendor:         RGM Community
@@ -18,7 +18,7 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-root
 RGM includes a web-based "RESTful" API (Application Programming Interface) called RGMAPI that enables external programs to access information from the monitoring database and to manipulate objects inside the databases of RGM suite.
 
 %prep
-%setup -q -n %{name}-master
+%setup -q -n %{name}-%{version}
 
 %build
 
