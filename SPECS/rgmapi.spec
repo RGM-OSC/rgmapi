@@ -1,7 +1,7 @@
 Summary:        API for the RGM suite.
 Name:           rgmapi
-Version:        1.0
-Release:        4.rgm
+Version:1.1
+Release:        1.rgm
 Source:         https://github.com/EyesOfNetworkCommunity/%{name}/archive/master.tar.gz#/%{name}-%{version}.tar.gz
 Group:          Applications/System
 License:        GPL
@@ -42,6 +42,10 @@ rm -rf %{buildroot}
 %{_sysconfdir}/httpd/conf.d/rgmapi.conf
 
 %changelog
+* Mon Mar 04 2019 Michael Aubertin <maubertin@fr.scc.com> - 1.1-1
+- Add CI.
+- Prepare full fork.
+
 * Mon Nov 28 2018 Michael Aubertin <michael.aubertin@gmail.com> - 1.0-4
 - Initialize RGM fork from EON
 
