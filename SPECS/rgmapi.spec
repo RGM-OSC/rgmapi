@@ -1,19 +1,19 @@
 Summary:        API for the RGM suite.
 Name:           rgmapi
-Version:1.1
-Release:        1.rgm
-Source0:         %{name}-%{version}.tar.gz
-Source1:rgmapi.conf
+Version:        1.1
+Release:        2.rgm
+Source0:        %{name}-%{version}.tar.gz
+Source1:        rgmapi.conf
 Group:          Applications/System
 License:        GPL
 Vendor:         RGM Community
 URL:            https://github.com/EyesOfNetworkCommunity/rgmapi
-Requires:	rgmweb
+Requires:       rgmweb
+BuildRequires:  rpm-macros-rgm
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-root
 
-%define rgmdir          /srv/rgm
-%define	datadir		%{rgmdir}/%{name}
+%define	datadir %{rgm_path}/%{name}
 
 %description
 RGM includes a web-based "RESTful" API (Application Programming Interface) called RGMAPI that enables external programs to access information from the monitoring database and to manipulate objects inside the databases of RGM suite.
@@ -37,12 +37,16 @@ systemctl restart httpd
 rm -rf %{buildroot}
 
 %files
-%defattr(-,root,eyesofnetwork)
-%{rgmdir}
-%defattr(-,root,root)
+%defattr(0644,root,%{rgm_group},0755)
+%{rgm_path}
+%defattr(0644,root,root)
 %{_sysconfdir}/httpd/conf.d/rgmapi.conf
 
 %changelog
+* Fri Mar 29 2019 Eric Belhomme <ebelhomme@fr.scc.com> - 1.1-2.rgm
+- add rpm-build-rgm as build dependency
+- fix group perms
+
 * Mon Mar 04 2019 Michael Aubertin <maubertin@fr.scc.com> - 1.1-1
 - Add CI.
 - Prepare full fork.
