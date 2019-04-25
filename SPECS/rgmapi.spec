@@ -1,7 +1,7 @@
 Summary:        API for the RGM suite.
 Name:           rgmapi
 Version:        1.1
-Release:        2.rgm
+Release:        3.rgm
 Source0:        %{name}-%{version}.tar.gz
 Source1:        rgmapi.conf
 Group:          Applications/System

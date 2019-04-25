@@ -6,7 +6,7 @@
 # Route calls
 #
 # Copyleft 2018 RGM
-# Author: BU DCA Team based on Adrien van den Haak initial work (https://github.com/EyesOfNetworkCommunity/eonapi)
+# Author: BU DCA Team based on Adrien van den Haak initial work (https://github.com/EyesOfNetworkCommunity/rgmapi)
 # 
 #
 #
@@ -62,9 +62,9 @@ function has_empty($array) {
 }
 
 function getUserByUsername( $username ){
-    global $database_eonweb;
+    global $database_rgmweb;
     
-    $usersql = sqlrequest($database_eonweb,
+    $usersql = sqlrequest($database_rgmweb,
 		"SELECT U.user_id as user_id,U.user_name as user_name,U.user_passwd as user_passwd,U.user_type as user_type,
 		U.user_limitation as user_limitation,R.tab_1 as readonly,R.tab_2 as operator,R.tab_6 as admin
 		FROM users as U left join groups as G on U.group_id = G.group_id left join groupright as R on R.group_id=G.group_id
@@ -81,9 +81,9 @@ function getJsonResponse( $response, $code, $array = null ){
 	
 	global $app;
 	
-    $eonapi = \Slim\Slim::VERSION;
+    $rgmapi = \Slim\Slim::VERSION;
     $codeMessage = $response->getMessageForCode( $code );
-    $arrayHeader = array("api_version" => $eonapi, "http_code" => $codeMessage);
+    $arrayHeader = array("api_version" => $rgmapi, "http_code" => $codeMessage);
     $arrayMerge = array_merge( $arrayHeader, $array );
 
     $jsonResponse = json_encode($arrayMerge, JSON_PRETTY_PRINT);
