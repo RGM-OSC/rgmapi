@@ -1,7 +1,7 @@
 Summary:        API for the RGM suite.
 Name:           rgmapi
 Version:        1.1
-Release:        3.rgm
+Release:        4.rgm
 Source0:        %{name}-%{version}.tar.gz
 Source1:        rgmapi.conf
 Group:          Applications/System
@@ -43,6 +43,9 @@ rm -rf %{buildroot}
 %{_sysconfdir}/httpd/conf.d/rgmapi.conf
 
 %changelog
+* Thu Apr 25 2019 Michael Aubertin <maubertin@fr.scc.com> - 1.1-4.rgm
+- Add functions
+
 * Fri Mar 29 2019 Eric Belhomme <ebelhomme@fr.scc.com> - 1.1-2.rgm
 - add rpm-build-rgm as build dependency
 - fix group perms
