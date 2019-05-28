@@ -12,6 +12,7 @@
 
 
 require "/srv/rgm/rgmapi/include/Slim/Slim.php";
+require "/srv/rgm/rgmapi/include/rgmauth.php";
 require "/srv/rgm/rgmapi/include/api_functions.php";
 require "/srv/rgm/rgmapi/include/ObjectManager.php";
 
@@ -20,8 +21,12 @@ $app = new \Slim\Slim();
 
 /* API routes are defined here (http method / association route / function) */
 //GET
-$app->get('/getApiKey', 'getApiKey');
-$app->get('/getAuthenticationStatus', 'getAuthenticationStatus');
+//$app->get('/getApiKey', 'getApiKey');
+//$app->get('/getAuthenticationStatus', 'getAuthenticationStatus');
+$app->get('/getAuthToken', 'getAuthToken');
+$app->get('/checkAuthToken', 'checkAuthToken');
+
+
 
 //POST (parameters in body)
 addRoute('get', '/getDowntimes', 'getDowntimes', 'operator');
@@ -156,6 +161,8 @@ function addRoute($httpMethod, $routeName, $methodName, $right="admin"){
 		
         $request = \Slim\Slim::getInstance()->request();
         $response = \Slim\Slim::getInstance()->response();
+        $authenticationValid = false;
+
         $body = json_decode($request->getBody());
         $logs = "";
 
@@ -190,7 +197,10 @@ function addRoute($httpMethod, $routeName, $methodName, $right="admin"){
             return;
         }
 
-        $authenticationValid = verifyAuthenticationByApiKey( $request, $right );
+        $tokenInfo = checkAuthTokenValidity($request);
+        if ($tokenInfo['status'] == 'authorized')
+        $authenticationValid = true;
+
         if( $authenticationValid == true ){
             $co = new $className;
             $logs = call_user_func_array(array($co, $methodName), $paramsValue);

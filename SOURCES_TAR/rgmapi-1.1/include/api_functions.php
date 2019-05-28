@@ -13,17 +13,22 @@
 */
 
 // => Modify this key with your own secret at initialization
-define("RGMAPI_KEY", "C0n5t3ll@t10n");
+//define("RGMAPI_KEY", "C0n5t3ll@t10n");
 
 
 /* API key encryption */
-function apiKey( $user_id )
+/*
+function genApiKey( $user_id )
 {
-    $key = md5(RGMAPI_KEY.$user_id);
+//    $key = md5(RGMAPI_KEY.$user_id);
 
-    return hash('sha256', $key.$_SERVER['SERVER_ADDR']);
+    $salt = mcrypt_create_iv(22, MCRYPT_DEV_URANDOM);
+    $salt = base64_encode($salt);
+    $salt = str_replace('+', '.', $salt);
+
+    return hash('sha256', crypt(RGMAPI_KEY.$user_id, '$2y$10$'.$salt.'$') . $_SERVER['SERVER_ADDR']);
 }
-
+*/
 
 /*---General functions--*/
 function getParametersNameFunction( $className, $functionName ){
@@ -80,10 +85,14 @@ function getUserByUsername( $username ){
 function getJsonResponse( $response, $code, $array = null ){
 	
 	global $app;
-	
-    $rgmapi = \Slim\Slim::VERSION;
-    $codeMessage = $response->getMessageForCode( $code );
-    $arrayHeader = array("api_version" => $rgmapi, "http_code" => $codeMessage);
+    
+    // RGM API version is the concatenation on Slim framework version *and* RGM API level revision
+    $codeMessage = $response->getMessageForCode($code);
+    $arrayHeader = array(
+        "slim_version" => \Slim\Slim::VERSION,
+        "rgmapi_version" => '1.0',
+        "http_code" => $codeMessage
+    );
     $arrayMerge = array_merge( $arrayHeader, $array );
 
     $jsonResponse = json_encode($arrayMerge, JSON_PRETTY_PRINT);
@@ -118,6 +127,7 @@ function constructResponse( $response, $logs, $authenticationValid = false ){
 }
 
 /*---Authorization checks--*/
+/*
 function verifyAuthenticationByApiKey( $request, $right ){
     $authenticationValid = false;
     
@@ -133,12 +143,23 @@ function verifyAuthenticationByApiKey( $request, $right ){
     $user_type = mysqli_result($usersql, 0, "user_type");
     
     //IF LOCAL USER AND ADMIN USER (No limitation)
-    if( $user_type != "1" && $user_right == "1"){
+    if( $user_type != "1" && $user_right == "1") {
         //ID of the authenticated user
         $user_id = mysqli_result($usersql, 0, "user_id");
-        $serverApiKey = apiKey( $user_id );    
-    }
+
+        global $database_rgmweb;
     
+        $sessions = sqlrequest( $database_rgmweb, "SELECT session_id, session_token, creation_epoch FROM sessions WHERE session_type = '2' AND user_id = '"
+            . $user_id . "' ORDER BY creation_epoch;",  false);
+        $now = time();
+        while ($sql_raw = mysqli_fetch_array($sessions)) {
+            if ($sql_raw[2] + 86400 > $now) {
+                sqlrequest( $database_rgmweb, "DELETE FROM sessions WHERE session_id = '" . $sql_raw[0] ."';", false);
+            } else {
+                $serverApiKey = $sql_raw[1];
+            }
+        }
+    }
     
     //Only if API keys match
     if($paramApiKey == $serverApiKey){
@@ -148,7 +169,9 @@ function verifyAuthenticationByApiKey( $request, $right ){
     
     return $authenticationValid;
 }
+*/
 
+/*
 function verifyAuthenticationByPassword( $request ){
     $authenticationValid = false;
     
@@ -172,11 +195,12 @@ function verifyAuthenticationByPassword( $request ){
     
     return $authenticationValid;
 }
-
-
+*/
 
 /*---Custom calls---*/
+/*
 function getApiKey(){
+    global $database_rgmweb;
     $request = \Slim\Slim::getInstance()->request();
     $response = \Slim\Slim::getInstance()->response();
     
@@ -186,9 +210,18 @@ function getApiKey(){
         $paramUsername = $request->get('username');
         $usersql = getUserByUsername( $paramUsername );
         $user_id = mysqli_result($usersql, 0, "user_id");
+
+        error_log("getApiKey() for userid ".$user_id."(".$paramUsername.")\n");
         
-        $serverApiKey = apiKey( $user_id );
+        $serverApiKey = genApiKey( $user_id );
+        error_log("getApiKey() for userid ".$user_id." key token: ".$serverApiKey."\n");
+
+        // prefix with 2 random digits to avoid collision in case of 2 concurrent cnx
+        $sessid = sprintf('%02d%d', mt_rand(1,99), time());
         
+        $newsession = sqlrequest( $database_rgmweb, "INSERT INTO `sessions` (session_id, user_id, session_type, session_token) VALUES ('" .
+            $sessid . "','" . $user_id . "', '2', '" . $serverApiKey . "');", true);
+
         $array = array("RGMAPI_KEY" => $serverApiKey);
         $result = getJsonResponse($response, "200", $array);
         echo $result;
@@ -199,11 +232,14 @@ function getApiKey(){
         echo $result;
     }  
 }
-
+*/
+/*
 function getAuthenticationStatus(){
 	
 	$request = \Slim\Slim::getInstance()->request();
     $response = \Slim\Slim::getInstance()->response();
+
+    checkAuthToken
     
     $authenticationValid = verifyAuthenticationByApiKey( $request,"readonly" );    
     if( $authenticationValid == TRUE ){
@@ -217,5 +253,6 @@ function getAuthenticationStatus(){
         echo $result;
     }
 }
+*/
 
 ?>

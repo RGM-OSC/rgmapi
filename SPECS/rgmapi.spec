@@ -9,6 +9,7 @@ License:        GPL
 Vendor:         RGM Community
 URL:            https://github.com/EyesOfNetworkCommunity/rgmapi
 Requires:       rgmweb
+Requires:       php-mcrypt
 BuildRequires:  rpm-macros-rgm
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-root

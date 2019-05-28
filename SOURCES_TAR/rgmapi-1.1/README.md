@@ -13,37 +13,42 @@ The RGM HTTP API offers the following functionality:
 ## Utilisation: How do I use RGMAPI?
 All calls to the RGM HTTP API are performed by HTTP GET/POST requests. The URLs consist of a path to the API function and sometimes some parameters.
 
-Some calls to the API are protected by API key. You need to present a valid key in your request. Each RGM user has a private APIKEY that enables to authenticate/validate the privileges.
+Some calls to the API are requiring a valid **token**. You need to provide a valid token in your request. Each token have a limited TTL (Time To Live) period (by default 3600 seconds)
 
-1. Generate your APIKEY with the RGMAPI following this URI in your browser or application API call (this operation should be done one time):
+1. To generate a RGMAPI valid token:
 ```http
-https://[RGM_IP]/rgmapi/getApiKey?&username=[username]&password=[password]
+https://[RGM_IP]/rgmapi/getAuthToken?&username=[username]&password=[password]
 ```
-**Pre-requisites:** You have to be a local admin user (and not an LDAP user) in order to get an APIKEY from the RGMAPI. If not, RGMAPI will return an "Unauthorized" 401 response.
+**Pre-requisites:** You have to be a local admin user (and not an LDAP user) in order to get a token from the RGMAPI. If not, RGMAPI will return an "Unauthorized" 401 response.
 
 If authorized, you should have in return a JSON document with your **RGMAPI_KEY** value:
 ```json
 {
-    "api_version": "2.4.2",
+    "slim_version": "2.4.2",
+    "rgmapi_version": "1.0",
     "http_code": "200 OK", 
     "RGMAPI_KEY": "022dfa0d83996bddada25cd01d051c6d85b64d5e383ef1f9f6cfb30e0f5b1170"
 }
 ```
-**NB:** Note the **api_version** version for implementation in your apps.
+**NB:** Note the **rgmapi_version** version for implementation in your apps.
 
-2. Test the privileges of your API key
+1. Test the privileges of your API token
 
-This API call you will allow you to now if the association username/apiKey is valid & has the needed privileges.
+This API call you will allow you to now if the provided token is valid & has the needed privileges.
 ```http
-https://[RGM_IP]/rgmapi/getAuthenticationStatus?&username=[username]&apiKey=[apiKey]
+https://[RGM_IP]/rgmapi/checkAuthToken?token=[token]
 ```
 
 You should have an authorized response:
 ```json
 {
-    "api_version": "2.4.2",
-    "http_code": "200 OK", 
-    "Status": "Authorized"
+	"slim_version": "2.4.2",
+    "rgmapi_version": "1.0",
+    "http_code": "200 OK",
+    "session_id": "1729011985",
+    "user_id": "1",
+    "creation_epoch": "1558975532",
+    "status": "authorized"
 }
 ```
 
@@ -54,7 +59,7 @@ I recommend the Open Source client software [Postman](https://www.getpostman.com
 
 A basic API call will look like that:
 ```http
-https://[RGM_IP]/rgmapi/[API_function]?&username=[username]&apiKey=[apiKey]
+https://[RGM_IP]/rgmapi/[API_function]?&username=[username]&token=[token]
 ```
 
 ## RGMAPI features
@@ -62,14 +67,14 @@ RGMAPI is open source and is built to make object manipulation easier. A few act
 
 As a reminder, a basic API call will look like that:
 ```http
-https://[RGM_IP]/rgmapi/[API_function]?&username=[username]&apiKey=[apiKey]
+https://[RGM_IP]/rgmapi/[API_function]?&username=[username]&token=[token]
 ```
 
 You will find below the updated list of actions (**"API_function"**) possible in RGMAPI:
 
 | Action URL **[API_function]** | Request type | Parameters (body/payload) | Expected response | Comments |
 | --- | --- | --- | --- | --- |
-| `getAuthenticationStatus` | GET | None | "status": "authorized" | Confirm that the provided user account has admin privileges and the permission to make advanced API calls. This means the association username/apiKey is correct.  |
+| `checkAuthToken` | GET | None | "status": "authorized" | Confirm that the provided token has admin privileges and the permission to make advanced API calls. |
 | `createHost` | POST | [**templateHostName, hostName, hostIp, hostAlias, contactName, contactGroupName, exportConfiguration**] | "http_code": "200 OK", "result": [with the executed actions] | Create a nagios host (affected to the provided parent template [templateHostName]) if not exists and reload lilac configuration. Posibility to attach a contact and/or a contact group to the host in the same time. |
 | `deleteHost` | POST | [**hostName, exportConfiguration**] | "http_code": "200 OK", "result": [with the executed actions] | Delete a nagios host. |
 | `deleteParentFromExistingHost` | POST | [**ParentName,hostName, exportConfiguration**] | "http_code": "200 OK", "result": [with the executed actions] | Delete a nagios host. |
@@ -250,7 +255,7 @@ Each response to an API call contains a status code. These status codes have a m
 | --- | --- | --- |
 | `200` | OK | The API call was completed successfully, the JSON response contains the result data. |
 | `400` | Bad Request | The API call could not be completed successfully. The XML response contains the error message. |
-| `401` | Unauthorized | The username/password or username/apiKey credentials of your authentication can not be accepted. |
+| `401` | Unauthorized | The username/password or token credentials of your authentication can not be accepted. |
 
 ## About the RGMAPI
 The RGM API is built with Slim Framework.
