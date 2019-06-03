@@ -89,7 +89,6 @@ function checkAuthTokenValidity($request){
     sqlrequest( $database_rgmweb, "DELETE FROM sessions WHERE creation_epoch < '" . ($now - $rgmauth_ttl) . "';", false);
 
     // try to find an existing token
-    print("SELECT session_id, creation_epoch, user_id FROM sessions " . "WHERE session_type = '2' and session_token = '" . $token . "';\n");
     $stmt = sqlrequest( $database_rgmweb, "SELECT session_id, creation_epoch, user_id FROM sessions "
         . "WHERE session_type = '2' and session_token = '" . $token . "';",  false);
     $sql_raw = mysqli_fetch_row($stmt);
