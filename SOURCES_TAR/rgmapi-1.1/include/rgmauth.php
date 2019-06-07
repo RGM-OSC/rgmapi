@@ -15,6 +15,38 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 */
 
+function checkAuthTokenValidity($request, $acl){
+    global $database_rgmweb;
+    global $rgmauth_ttl;
+
+    $tokenInfo = array(
+        "session_id" => "None",
+        "user_id" => 0,
+        "creation_epoch" => 0,
+        "status" => "unauthorized"
+    );
+    $now = time();
+    
+    //Parameters in request
+    $token = $request->get('token');
+
+    // clean expired tokens
+    sqlrequest( $database_rgmweb, "DELETE FROM sessions WHERE creation_epoch < '" . ($now - $rgmauth_ttl) . "';", false);
+
+    // try to find an existing token
+    $stmt = sqlrequest( $database_rgmweb, "SELECT session_id, creation_epoch, user_id, session_type FROM sessions "
+        . "WHERE session_type >= 2 AND  session_type <= 3 AND session_token = '" . $token . "';",  false);
+    $sql_raw = mysqli_fetch_row($stmt);
+
+    if (count($sql_raw) == 3) {
+        $tokenInfo['session_id'] = $sql_raw[0];
+        $tokenInfo['user_id'] = $sql_raw[2];
+        $tokenInfo['creation_epoch'] = $sql_raw[1];
+        $tokenInfo['status'] = "authorized";
+    }
+    return $tokenInfo;
+}
+
 function getAuthToken() {
     global $database_rgmweb;
     $request = \Slim\Slim::getInstance()->request();
@@ -70,48 +102,21 @@ function getAuthToken() {
     }
 }
 
-function checkAuthTokenValidity($request){
-    global $database_rgmweb;
-    global $rgmauth_ttl;
-
-    $tokenInfo = array(
-        "session_id" => "None",
-        "user_id" => 0,
-        "creation_epoch" => 0,
-        "status" => "unauthorized"
-    );
-    $now = time();
-    
-    //Parameters in request
-    $token = $request->get('token');
-
-    // clean expired tokens
-    sqlrequest( $database_rgmweb, "DELETE FROM sessions WHERE creation_epoch < '" . ($now - $rgmauth_ttl) . "';", false);
-
-    // try to find an existing token
-    $stmt = sqlrequest( $database_rgmweb, "SELECT session_id, creation_epoch, user_id FROM sessions "
-        . "WHERE session_type = '2' and session_token = '" . $token . "';",  false);
-    $sql_raw = mysqli_fetch_row($stmt);
-
-    if (count($sql_raw) == 3) {
-        $tokenInfo['session_id'] = $sql_raw[0];
-        $tokenInfo['user_id'] = $sql_raw[2];
-        $tokenInfo['creation_epoch'] = $sql_raw[1];
-        $tokenInfo['status'] = "authorized";
-    }
-    return $tokenInfo;
-}
-
-function checkAuthToken(){
+function checkAuthToken($acl){
     $request = \Slim\Slim::getInstance()->request();
     $response = \Slim\Slim::getInstance()->response();
 
     $httpcode = '401';
-    $tokenInfo = checkAuthTokenValidity($request);
+    $tokenInfo = checkAuthTokenValidity($request, $acl);
     if ($tokenInfo['status'] == 'authorized')
         $httpcode = '200';
     
     $result = getJsonResponse($response, $httpcode, $tokenInfo);
     echo $result;
+}
+
+function clearOneTimeToken($token) {
+    global $database_rgmweb;
+    sqlrequest( $database_rgmweb, "DELETE FROM sessions WHERE session_type = 3 AND session_token = '" . $token . "';", false);
 }
 ?>
