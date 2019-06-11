@@ -223,7 +223,7 @@ function addRoute($httpMethod, $routeName, $methodName, $acl) {
         if ($acl & ACL_NOAUTH) {
             $authOk = true;
         } else {
-            $tokenInfo = checkAuthTokenValidity($request, $acl);
+            $tokenInfo = checkAuthTokenValidity($request, $token);
             if ($tokenInfo['status'] == 'authorized') {
                 $authOk = true;
             }

@@ -47,7 +47,7 @@ function _genOneTimeToken() {
         $tokeninfo['session'] . "', '3', '" . $tokeninfo['token'] . "', '". time() . "');", true);
 }
 
-function checkAuthTokenValidity($request, $acl){
+function checkAuthTokenValidity($request, $token){
     global $database_rgmweb;
     global $rgmauth_ttl;
 
@@ -59,9 +59,6 @@ function checkAuthTokenValidity($request, $acl){
     );
     $now = time();
     
-    //Parameters in request
-    $token = $request->get('token');
-
     // clean expired tokens
     sqlrequest( $database_rgmweb, "DELETE FROM sessions WHERE creation_epoch < '" . ($now - $rgmauth_ttl) . "';", false);
 
@@ -128,12 +125,12 @@ function getAuthToken() {
     }
 }
 
-function checkAuthToken($acl){
+function checkAuthToken($token){
     $request = \Slim\Slim::getInstance()->request();
     $response = \Slim\Slim::getInstance()->response();
 
     $httpcode = '401';
-    $tokenInfo = checkAuthTokenValidity($request, $acl);
+    $tokenInfo = checkAuthTokenValidity($request, $token);
     if ($tokenInfo['status'] == 'authorized')
         $httpcode = '200';
     
