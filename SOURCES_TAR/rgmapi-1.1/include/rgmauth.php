@@ -52,10 +52,10 @@ function checkAuthTokenValidity($request, $token){
     global $rgmauth_ttl;
 
     $tokenInfo = array(
-        "session_id" => "None",
-        "user_id" => 0,
-        "creation_epoch" => 0,
-        "status" => "unauthorized"
+        'session_id' => 'None',
+        'creation_epoch' => 0,
+        'status' => 'unauthorized',
+        'username' => ''
     );
     $now = time();
     
@@ -71,8 +71,15 @@ function checkAuthTokenValidity($request, $token){
         $tokenInfo['session_id'] = $sql_raw[0];
         $tokenInfo['creation_epoch'] = $sql_raw[1];
         $tokenInfo['status'] = "authorized";
-        $stmt = sqlrequest( $database_rgmweb, "SELECT user_name FROM users WHERE user_id = '" . $sql_raw[2] . "';", false);
-        $tokenInfo['username'] = mysqli_result($stmt, 0, "user_name");
+        switch ($sql_raw[3]) {
+            case 2:
+                $stmt = sqlrequest( $database_rgmweb, "SELECT user_name FROM users WHERE user_id = '" . $sql_raw[2] . "';", false);
+                $tokenInfo['username'] = mysqli_result($stmt, 0, "user_name");
+                break;
+            case 3:
+                $tokenInfo['username'] = 'one-time-token';
+                break;
+        }
     }
     return $tokenInfo;
 }
@@ -125,10 +132,22 @@ function getAuthToken() {
     }
 }
 
+function getTokenParameter($request) { 
+    // Search for token parameter passed as variable or in http headers
+    $token = '';
+    if ($header = $request->headers->get('token')) {
+        $token = $header;
+    }
+    if ( $var = $request->get('token')) {
+        $token = $var;
+    }
+    return $token;
+}
+
 function checkAuthToken($token){
     $request = \Slim\Slim::getInstance()->request();
     $response = \Slim\Slim::getInstance()->response();
-
+    $token = getTokenParameter($request);
     $httpcode = '401';
     $tokenInfo = checkAuthTokenValidity($request, $token);
     if ($tokenInfo['status'] == 'authorized')

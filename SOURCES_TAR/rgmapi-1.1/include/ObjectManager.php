@@ -4974,6 +4974,55 @@ class ObjectManager {
 		return $result;
 
 	}*/
+
+	/**
+	 * @brief	enumerates all defined "tags" used to classify one-liners items
+	 * @details	enumerates all defined "tags" used to classify one-liners items
+	 * @return	an array of available tag names
+	 */
+	public function listOneLinersTags() {
+		global $database_rgmweb;
+		$tags = array();
+		$stmt = sqlrequest( $database_rgmweb, "SELECT name FROM ol_tags", false);
+		while ($sql_raw = mysqli_fetch_array($stmt)) {
+			$tags[] = $sql_raw[0];
+		}
+		return $tags;
+	}
+
+	/**
+	 * @brief	enumerates one-liners items or a subset filtered by tags
+	 * @param	$tagsFilter a comma separated string of tag names, or null if no filter specified
+	 * @return	an array of array of one-liner items
+	 */
+	public function listOneLinersItems($tagsFilter='') {
+		global $database_rgmweb;
+		$tags_ids = array();
+		$items = array();
+
+		if ($tagsFilter != '') {
+			$tags = explode(',', $tagsFilter);
+			foreach ($tags as $tagname) {
+				$stmt = sqlrequest( $database_rgmweb, "SELECT id FROM ol_tags WHERE name = '$tagname';", false);
+				$sql_raw = mysqli_fetch_array($stmt);
+				if ($sql_raw) {
+					$tags_ids[] = $sql_raw[0];
+				}
+			}
+		}
+		$statement = "SELECT DISTINCT it.name AS `name`, it.command AS `command` FROM rgmweb.ol_items AS it INNER JOIN ol_items_tags AS ta ON it.id = ta.id_item";
+		if (count($tags_ids) > 0) {
+			$statement .= ' WHERE ta.id_tags = ' . implode(' OR ta.id_tags = ', $tags_ids);	
+		}
+		$stmt = sqlrequest( $database_rgmweb, $statement, false);
+		while ($sql_raw = mysqli_fetch_array($stmt)) {
+			$items[] = array(
+				'name' => $sql_raw[0],
+				'command' => $sql_raw[1]
+			);
+		}
+		return $items;
+	}
 }
 
 ?>

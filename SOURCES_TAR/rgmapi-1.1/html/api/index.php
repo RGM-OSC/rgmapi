@@ -24,7 +24,7 @@ $app = new \Slim\Slim();
 //$app->get('/getApiKey', 'getApiKey');
 //$app->get('/getAuthenticationStatus', 'getAuthenticationStatus');
 $app->get('/getAuthToken', 'getAuthToken');
-addRoute('get', '/checkAuthToken', 'checkAuthToken', ACL_NOAUTH | ACL_1T_NOCLEAR | ACL_READONLY);
+$app->get('/checkAuthToken', 'checkAuthToken');
 
 //POST (parameters in body)
 addRoute('get', '/getDowntimes', 'getDowntimes', ACL_READONLY);
@@ -151,7 +151,10 @@ addRoute('post', '/listNagiosStates', 'listNagiosStates', ACL_READONLY);
 addRoute('post', '/listNagiosObjects', 'listNagiosObjects', ACL_READONLY);
 addRoute('post', '/listNagiosBackends', 'listNagiosBackends', ACL_READONLY);
 
- 
+addRoute('get', '/listOneLinersTags', 'listOneLinersTags', ACL_READONLY);
+addRoute('get', '/listOneLinersItems', 'listOneLinersItems', ACL_READONLY);
+
+
 /**
  * @brief   Kind of framework to add routes very easily
  * @details This function registers Slim routes to ObjectManager methods
@@ -171,14 +174,8 @@ function addRoute($httpMethod, $routeName, $methodName, $acl) {
         $className = 'ObjectManager';
         $params = array(array(), array());
         $msg = '';
+        $token = getTokenParameter($request);
 
-        // Search for token parameter passed as variable or in http headers
-        if ($header = $request->headers->get('token')) {
-            $token = $header;
-        }
-        if ( $var = $request->get('token')) {
-            $token = $var;
-        }
         // retrieve routed function parameters, ensure all parameters are provided
         // (or have an acceptable default value in function)
         $reflector = new ReflectionMethod($className, $methodName);
@@ -200,14 +197,15 @@ function addRoute($httpMethod, $routeName, $methodName, $acl) {
             if ($key == 'token') {
                 continue;
             }
-            if (in_array( $key, $params[0]) == FALSE) {
+            if (in_array( $key, $params[0]) == false) {
                 if ($msg != '') $msg .= ', ';
                 $msg .= 'unknown parameter: ' . $key;
             }
         }
         // ensure function have all requested parameters filled
-        foreach ($params[1] as $key => $value) {
-            if ($value == null) {
+        $keys = array_keys($params[1]);
+        foreach ($params[0] as $fnparam) {
+            if (in_array( $fnparam, $keys) == false) {
                 if ($msg != '') $msg .= ', ';
                 $msg .= 'missing parameter: ' . $key;
             }
