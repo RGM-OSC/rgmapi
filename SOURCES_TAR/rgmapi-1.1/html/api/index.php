@@ -152,7 +152,10 @@ addRoute('post', '/listNagiosObjects', 'listNagiosObjects', ACL_READONLY);
 addRoute('post', '/listNagiosBackends', 'listNagiosBackends', ACL_READONLY);
 
  
-/* Kind of framework to add routes very easily */
+/**
+ * @brief   Kind of framework to add routes very easily
+ * @details This function registers Slim routes to ObjectManager methods
+ */
 function addRoute($httpMethod, $routeName, $methodName, $acl) {
 	
     global $app;
@@ -217,17 +220,18 @@ function addRoute($httpMethod, $routeName, $methodName, $acl) {
             return;
         }
 
-        if ($acl && ACL_NOAUTH) {
+        if ($acl & ACL_NOAUTH) {
             $authOk = true;
         } else {
             $tokenInfo = checkAuthTokenValidity($request, $acl);
-            if ($tokenInfo['status'] == 'authorized')
-            $authOk = true;
+            if ($tokenInfo['status'] == 'authorized') {
+                $authOk = true;
+            }
         }
-        if($authOk) {
-            $co = new $className;
+        if ($authOk) {
+            $co = new $className($tokenInfo['username']);
             $logs = call_user_func_array(array($co, $methodName), $params[1]);
-            if ($acl && ACL_1T_CLEAR) {
+            if ( ! $acl && ACL_1T_NOCLEAR) {
                 clearOneTimeToken($token);
             }
         }

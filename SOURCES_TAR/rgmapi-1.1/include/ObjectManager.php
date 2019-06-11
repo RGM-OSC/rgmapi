@@ -30,10 +30,11 @@ class ObjectManager {
     
 	private $authUser;
 		
-    function __construct(){
+    function __construct($username){
 		# Get api userName
-		$request = \Slim\Slim::getInstance()->request();
-		$this->authUser = $request->get('username');  
+		// $request = \Slim\Slim::getInstance()->request();
+		// $this->authUser = $request->get('username');
+		$this->authUser = $username;
 	}
 	
 	/* LILAC - List Hosts */
