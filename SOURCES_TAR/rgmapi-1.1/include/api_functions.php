@@ -30,41 +30,49 @@ function genApiKey( $user_id )
 }
 */
 
+const ACL_NOAUTH     = 0b00001; // authentication not required (token *not* needed)
+const ACL_READONLY   = 0b00010; // action restricted to read-only
+const ACL_1T_TOKEN   = 0b00100; // one-time token authorized for this action
+const ACL_1T_NOCLEAR = 0b00100; // don't clear one-time token after call
+const ACL_ADMIN      = 0b10000; // action restricted to admin users
+
+
+
 /*---General functions--*/
-function getParametersNameFunction( $className, $functionName ){
-    $reflector = new ReflectionMethod($className, $functionName);
-    $params = array(array(),array());
- 
-    foreach ($reflector->getParameters() as $param) {
-        $params[0][] = $param->name;
-        if( $param->isDefaultValueAvailable() ){
-		$params[1][$param->name] = $param->getDefaultValue(); 
-	}
-    }
-    
-    return $params;
-}
-
-function getParametersNameCompulsoryFunction( $className, $functionName ){
-    $reflector = new ReflectionMethod($className, $functionName);
-    $params = array();
-    
-    foreach ($reflector->getParameters() as $param) {
-        if( $param->isDefaultValueAvailable() == false ){
-            $params[] = $param->name;
-        }
-    }
-    
-    return $params;
-}
-
-function has_empty($array) {
-    foreach ($array as $value) {
-        if ($value == null)
-            return true;
-    }
-    return false;
-}
+//function getParametersNameFunction( $className, $functionName ){
+//    $reflector = new ReflectionMethod($className, $functionName);
+//    $params = array(array(),array());
+// 
+//    foreach ($reflector->getParameters() as $param) {
+//        $params[0][] = $param->name;
+//        if( $param->isDefaultValueAvailable() ){
+//		$params[1][$param->name] = $param->getDefaultValue(); 
+//	}
+//    }
+//    
+//    return $params;
+//}
+//
+//function getParametersNameCompulsoryFunction( $className, $functionName ){
+//    $reflector = new ReflectionMethod($className, $functionName);
+//    $params = array();
+//    
+//    foreach ($reflector->getParameters() as $param) {
+//        if( $param->isDefaultValueAvailable() == false ){
+//            $params[] = $param->name;
+//        }
+//    }
+//    
+//    return $params;
+//}
+//
+//function has_empty($array) {
+//    foreach ($array as $value) {
+//        if ($value == null)
+//            return true;
+//    }
+//    return false;
+//}
 
 function getUserByUsername( $username ){
     global $database_rgmweb;

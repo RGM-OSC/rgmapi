@@ -15,6 +15,75 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 */
 
+
+/**
+ * @brief   Generates a unique token and session id
+ * @details Generates a unique token and session ID when invoked. It does @b not
+ *          handle any database related operation.
+ *          This function is not exported throught Slim routing handlers
+ * @param   $username The username used to create the token
+ * @return  an array composed of @b session and @b token keys 
+ */
+function _genToken($username) {
+    // gen token randomly
+    $ret = array();
+    // share session mgmt with rgmweb
+    $ret['session'] = genSessionId();
+    $salt = mcrypt_create_iv(22, MCRYPT_DEV_URANDOM);
+    $salt = base64_encode($salt);
+    $salt = str_replace('+', '.', $salt);
+    $ret['token'] = hash('sha256', crypt($username, '$2y$10$'.$salt.'$') . $_SERVER['SERVER_ADDR']);
+    return $ret;
+}
+
+/**
+ * @brief   Generates a one-time token
+ * 
+ */
+function _genOneTimeToken() {
+
+    $tokeninfo = _genToken('one-time-token');
+    $newsession = sqlrequest( $database_rgmweb, "INSERT INTO `sessions` (session_id, session_type, session_token, creation_epoch) VALUES ('" .
+        $tokeninfo['session'] . "', '3', '" . $tokeninfo['token'] . "', '". time() . "');", true);
+}
+
+function checkAuthTokenValidity($request, $token){
+    global $database_rgmweb;
+    global $rgmauth_ttl;
+
+    $tokenInfo = array(
+        'session_id' => 'None',
+        'creation_epoch' => 0,
+        'status' => 'unauthorized',
+        'username' => ''
+    );
+    $now = time();
+    
+    // clean expired tokens
+    sqlrequest( $database_rgmweb, "DELETE FROM sessions WHERE creation_epoch < '" . ($now - $rgmauth_ttl) . "';", false);
+
+    // try to find an existing token
+    $stmt = sqlrequest( $database_rgmweb, "SELECT session_id, creation_epoch, user_id, session_type FROM sessions "
+        . "WHERE session_type >= 2 AND  session_type <= 3 AND session_token = '" . $token . "';",  false);
+    $sql_raw = mysqli_fetch_row($stmt);
+
+    if (count($sql_raw) == 4) {
+        $tokenInfo['session_id'] = $sql_raw[0];
+        $tokenInfo['creation_epoch'] = $sql_raw[1];
+        $tokenInfo['status'] = "authorized";
+        switch ($sql_raw[3]) {
+            case 2:
+                $stmt = sqlrequest( $database_rgmweb, "SELECT user_name FROM users WHERE user_id = '" . $sql_raw[2] . "';", false);
+                $tokenInfo['username'] = mysqli_result($stmt, 0, "user_name");
+                break;
+            case 3:
+                $tokenInfo['username'] = 'one-time-token';
+                break;
+        }
+    }
+    return $tokenInfo;
+}
+
 function getAuthToken() {
     global $database_rgmweb;
     $request = \Slim\Slim::getInstance()->request();
@@ -44,18 +113,11 @@ function getAuthToken() {
         
         //IF match the hashed password
         if($userpasswd == $password) {
-            // share session mgmt with rgmweb
-            $sessid = genSessionId();
-            // gen token randomly
-            $salt = mcrypt_create_iv(22, MCRYPT_DEV_URANDOM);
-            $salt = base64_encode($salt);
-            $salt = str_replace('+', '.', $salt);
-            $token = hash('sha256', crypt($username, '$2y$10$'.$salt.'$') . $_SERVER['SERVER_ADDR']);
-    
+            $tokeninfo = _genToken($username);
             $newsession = sqlrequest( $database_rgmweb, "INSERT INTO `sessions` (session_id, user_id, session_type, session_token, creation_epoch) VALUES ('" .
-                $sessid . "','" . $user_id . "', '2', '" . $token . "', '". time() . "');", true);
+                $tokeninfo['session'] . "','" . $user_id . "', '2', '" . $tokeninfo['token'] . "', '". time() . "');", true);
     
-            $array = array("RGMAPI_TOKEN" => $token);
+            $array = array("RGMAPI_TOKEN" => $tokeninfo['token']);
             $result = getJsonResponse($response, "200", $array);
             echo $result;
         } else {
@@ -70,48 +132,33 @@ function getAuthToken() {
     }
 }
 
-function checkAuthTokenValidity($request){
-    global $database_rgmweb;
-    global $rgmauth_ttl;
-
-    $tokenInfo = array(
-        "session_id" => "None",
-        "user_id" => 0,
-        "creation_epoch" => 0,
-        "status" => "unauthorized"
-    );
-    $now = time();
-    
-    //Parameters in request
-    $token = $request->get('token');
-
-    // clean expired tokens
-    sqlrequest( $database_rgmweb, "DELETE FROM sessions WHERE creation_epoch < '" . ($now - $rgmauth_ttl) . "';", false);
-
-    // try to find an existing token
-    $stmt = sqlrequest( $database_rgmweb, "SELECT session_id, creation_epoch, user_id FROM sessions "
-        . "WHERE session_type = '2' and session_token = '" . $token . "';",  false);
-    $sql_raw = mysqli_fetch_row($stmt);
-
-    if (count($sql_raw) == 3) {
-        $tokenInfo['session_id'] = $sql_raw[0];
-        $tokenInfo['user_id'] = $sql_raw[2];
-        $tokenInfo['creation_epoch'] = $sql_raw[1];
-        $tokenInfo['status'] = "authorized";
+function getTokenParameter($request) { 
+    // Search for token parameter passed as variable or in http headers
+    $token = '';
+    if ($header = $request->headers->get('token')) {
+        $token = $header;
     }
-    return $tokenInfo;
+    if ( $var = $request->get('token')) {
+        $token = $var;
+    }
+    return $token;
 }
 
-function checkAuthToken(){
+function checkAuthToken($token){
     $request = \Slim\Slim::getInstance()->request();
     $response = \Slim\Slim::getInstance()->response();
-
+    $token = getTokenParameter($request);
     $httpcode = '401';
-    $tokenInfo = checkAuthTokenValidity($request);
+    $tokenInfo = checkAuthTokenValidity($request, $token);
     if ($tokenInfo['status'] == 'authorized')
         $httpcode = '200';
     
     $result = getJsonResponse($response, $httpcode, $tokenInfo);
     echo $result;
+}
+
+function clearOneTimeToken($token) {
+    global $database_rgmweb;
+    sqlrequest( $database_rgmweb, "DELETE FROM sessions WHERE session_type = 3 AND session_token = '" . $token . "';", false);
 }
 ?>
