@@ -107,6 +107,35 @@ class ObjectManager {
 		}
 		return $host;
 	}
+
+	/**
+	 * @brief	a generic function to retrieve various Lilac objects information
+	 * @param	$objectClass	a Lilac class object
+	 * @param	$objectName		a specific name of the object name we want to retrieve
+	 * @return	an array containing the object requested *or* a list of all objects of $objectClass
+	 */
+	private function getNagiosObject($objectClass, $objectName) {
+		if (!$objectName) {
+			$crit = new Criteria();
+			$crit->addAscendingOrderByColumn($objectClass::NAME);
+			$result=array();
+			$lst = $objectClass::doSelect($crit);
+			foreach ($lst as $obj) {
+				array_push($result, $obj->toArray());
+			}
+			return $result;
+		} else {
+			$obj = new $objectClass;
+			// Find host contact
+			$result = $obj->getByName($objectName);
+			if (!$result) {
+				return "Object $objectName doesn't exist\n";
+			} else {
+				return $result->toArray();
+			}
+		}
+	}
+
 	/* LIVESTATUS - set nagios objects */
 /*	private function SetNagiosObjects( $object, $backendid = NULL, $columns = FALSE, $filters = FALSE ) {
 	
@@ -176,27 +205,88 @@ class ObjectManager {
 	}*/
 
 
-	/* LILAC - List Hosts */
-	public function listHosts( $hostName = false, $hostTemplate = false ){
-		
-		return true;
-		
-	}
 	/**
 	 * @brief	returns a Lilac Host object for referenced hostname
 	 * @param	$hostName	the Lilac HostName object to retrieve
 	 * @return	an array that describes the hostname
 	 */
-	public function getHost( $hostName){
-        $nhp = new NagiosHostPeer;
-		// Find host
-		$host = $nhp->getByName($hostName);
-		if($host){
-			return $host->toArray();
-		}else{
-			return "Host named ".$hostName." doesn't exist."; 
-		}
+	public function getHost( $hostName) {
+		return $this->getNagiosObject(new NagiosHostPeer(), $hostName);
 	}
+	
+	/**
+	 * @brief	get HostTemplate details
+	 * @param	$templateHostName	the HostTemplate name to look for
+	 * @return	an array that describes the HostTemplate 
+	 */
+	public function getHostTemplate($templateHostName) {
+		return $this->getNagiosObject(new NagiosHostTemplatePeer(), $templateHostName);
+	}
+
+	/**
+	 * @brief	get details for a specified Lilac HostGroup name
+	 * @param	$hostGroupName the HostGroup name to describe
+	 * @return	an array of HostGroup details
+	 */
+	public function getHostGroup($hostGroupName) {
+		return $this->getNagiosObject(new NagiosHostgroupPeer(), $hostGroupName);
+	}
+
+	/**
+	 * @brief	get Lilac Contact Names
+	 * @details	returns a Lilac ContactName, or a **list** of ContactName
+	 * @param	$contactName the Lilac ContactName to search, or **false** to
+	 * 			list all ContactName (defaults to false)
+	 * @return	a ContactName detail *or* a list of ContactName
+	 */
+	public function getContact($contactName=FALSE) {
+		return $this->getNagiosObject(new NagiosContactPeer(), $contactName);
+	}
+
+	/**
+	 * @brief	get Lilac Contact Groups
+	 * @details	returns a Lilac ContactGroup, or a **list** of ContactGroup
+	 * @param	$contactGroupName the Lilac ContactGroup to search, or **false** to
+	 * 			list all ContactName (defaults to false)
+	 * @return	a ContactGroup detail *or* a list of ContactGroup
+	 */
+	public function getContactGroups($contactGroupName=FALSE) {
+		return $this->getNagiosObject(new NagiosContactGroupPeer(), $contactGroupName);
+	}
+
+	/**
+	 * @brief	get Lilac Commands
+	 * @details	returns a Lilac Command, or a **list** of Commands
+	 * @param	$commandName the Lilac Command to search, or **false** to
+	 * 			list all Commands (defaults to false)
+	 * @return	a Command detail *or* a list of Commands
+	 */
+	public function getCommand($commandName){
+		return $this->getNagiosObject(new NagiosCommandPeer(), $commandName);
+	}
+
+	/**
+	 * @brief	get Lilac ServiceTemplate
+	 * @details	returns a Lilac ServiceTemplate, or a **list** of ServiceTemplate
+	 * @param	$commandName the Lilac ServiceTemplate to search, or **false** to
+	 * 			list all ServiceTemplate (defaults to false)
+	 * @return	a ServiceTemplate detail *or* a list of ServiceTemplate
+	 */
+	public function getServiceTemplate($templateName){
+		return $this->getNagiosObject(new NagiosServiceTemplatePeer(), $templateName);
+	}
+
+	/**
+	 * @brief	get Lilac ServiceGroup
+	 * @details	returns a Lilac ServiceGroup, or a **list** of groups
+	 * @param	$serviceGroupName the Lilac ServiceGroup to search, or **false** to
+	 * 			list all ServiceGroup (defaults to false)
+	 * @return	a ServiceGroup detail *or* a list of ServiceGroup
+	 */
+	public function getServiceGroup($serviceGroupName) {
+		return $this->getNagiosObject(new NagiosServiceGroupPeer(), $serviceGroupName);
+	}
+
 	/**
 	 * @brief	get a host list that belongs to specified Lilac HostTemplate
 	 * @param	$templateHostName	The HostTemplate name to look for
@@ -221,23 +311,7 @@ class ObjectManager {
 			}
 		}
 	}
-	/**
-	 * @brief	get HostTemplate details
-	 * @param	$templateHostName	the HostTemplate name to look for
-	 * @return	an array that describes the HostTemplate 
-	 */
-	public function getHostTemplate($templateHostName) {
 
-        // Check for pre-existing host template with same name        
-        $nhtp = new NagiosHostTemplatePeer;
-		$template_host = $nhtp->getByName($templateHostName);
-		if($template_host) {
-			return $template_host->toArray();
-		}
-		else{
-			return "Host named ".$templateHostName." doesn't exist."; 
-		}
-	}
 	/**
 	 * @brief	get a host list that belongs to specified Lilac HostGroup
 	 * @param	$hostGroupName	The HostGroup name to look for
@@ -264,148 +338,22 @@ class ObjectManager {
 	}
 
 	/**
-	 * @brief	get details for a specified Lilac HostGroup name
-	 * @param	$hostGroupName the HostGroup name to describe
-	 * @return	an array of HostGroup details
+	 * @brief	get all services attached to a specified Lilac Host
+	 * @param	$hostName	The Host name to query
+	 * @return	an array containing a list of services attached to host
 	 */
-	public function getHostGroup($hostGroupName) {
-		$nhgp = new NagiosHostgroupPeer;
-		//Find HostGroup
-		$hostGroup = $nhgp->getByName( $hostGroupName );
-		if(!$hostGroup) {
-			return "HostGroup named $hostGroupName not found\n";
-		}else{
-			return $hostGroup->toArray();
-		}
-	}
-
-	/**
-	 * @brief	get Lilac Contact Names
-	 * @details	returns a Lilac ContactName, or a **list** of ContactName
-	 * @param	$contactName the Lilac ContactName to search, or **false** to
-	 * 			list all ContactName (defaults to false)
-	 * @return	a ContactName detail *or* a list of ContactName
-	 */
-	public function getContact($contactName=FALSE) {
-		if(!$contactName){
-			$c = new Criteria();
-			$c->addAscendingOrderByColumn(NagiosContactPeer::NAME);
-			$result=array();
-			$contact_list = NagiosContactPeer::doSelect($c);
-			foreach($contact_list as $contact){
-				array_push($result,$contact->toArray());
-			}
-			return $result;
-		}else {
-			$ncp = new NagiosContactPeer;
-			// Find host contact
-			$contact = $ncp->getByName( $contactName );
-			if(!$contact) {
-				return "Contact $contactName doesn't exist\n";
-			}else{
-				return $contact->toArray();
-			}
-		}
-	}
-
-	/**
-	 * @brief	get Lilac Contact Groups
-	 * @details	returns a Lilac ContactGroup, or a **list** of ContactGroup
-	 * @param	$contactGroupName the Lilac ContactGroup to search, or **false** to
-	 * 			list all ContactName (defaults to false)
-	 * @return	a ContactGroup detail *or* a list of ContactGroup
-	 */
-	public function getContactGroups($contactGroupName=FALSE) {
-		if(!$contactGroupName){
-			$c = new Criteria();
-			$c->addAscendingOrderByColumn(NagiosContactGroupPeer::NAME);
-			$result=array();
-			$contactGroup_list = NagiosContactGroupPeer::doSelect($c);
-			foreach($contactGroup_list as $contactGroup){
-				array_push($result,$contactGroup->toArray());
-			}
-			return $result;
-		}else {
-			$ncgp = new NagiosContactGroupPeer;
-			// Find host contact
-			$contactGroup = $ncgp->getByName( $contactGroupName );
-			if(!$contactGroup) {
-				return "ContactGroup named $contactGroupName doesn't exist\n";
-			}else{
-				return $contactGroup->toArray();
-			}
-		}
-	}
-
-	/**
-	 * @brief	get Lilac Commands
-	 * @details	returns a Lilac Command, or a **list** of Commands
-	 * @param	$commandName the Lilac Command to search, or **false** to
-	 * 			list all Commands (defaults to false)
-	 * @return	a Command detail *or* a list of Commands
-	 */
-	public function getCommand($commandName){
-		if (!$commandName) {
-			$c = new Criteria();
-			$c->addAscendingOrderByColumn(NagiosCommandPeer::NAME);
-			$result=array();
-			$command_list = NagiosCommandPeer::doSelect($c);
-			foreach($command_list as $command){
-				array_push($result, $command->toArray());
-			}
-			return $result;
-		} else {
-			$ncp = new NagiosCommandPeer;
-			$targetCommand = $ncp->getByName($commandName);
-			if(!$targetCommand) {
-				return  "The command '".$commandName."' does not exist\n";
-			}else{
-				return $targetCommand->toArray();
-			}
-		}
-	}
-
-	/**
-	 * @brief	get Lilac ServiceTemplate
-	 * @details	returns a Lilac ServiceTemplate, or a **list** of Commands
-	 * @param	$commandName the Lilac Command to search, or **false** to
-	 * 			list all Commands (defaults to false)
-	 * @return	a Command detail *or* a list of Commands
-	 */
-
-	/* LILAC - get Serice template */
-	public function getServiceTemplate($templateName){
-		$ncp = new NagiosServiceTemplatePeer;
-		$targetTemplate = $ncp->getByName($templateName);
-        if(!$targetTemplate) {
-            return  "The Service Template '".$templateName."' does not exist\n";
-        }else{
-			return $targetTemplate->toArray();
-		}
-	}
-	/* LILAC - get Service Group */
-	public function getServiceGroup($serviceGroupName){
-		$ncp = new NagiosServiceGroupPeer;
-		$targetGroup = $ncp->getByName($serviceGroupName);
-        if(!$targetGroup) {
-            return  "The Service Group '".$serviceGroupName."' does not exist\n";
-        }else{
-			return $targetGroup->toArray();
-		}
-	}
-	/* LILAC - Get Service by Host */
-	public function getServicesByHost($hostName){
+	public function getServicesByHost($hostName) {
 		$nhp = new NagiosHostPeer();
 		$host = $nhp->getByName($hostName);
-		if(!$host){
+		if (!$host) {
 			return "No host named $hostName.\n";
-		}else{
+		} else {
 			$c = new Criteria();
 			$c->add(NagiosServicePeer::HOST, $host->getId());
 			$c->addAscendingOrderByColumn(NagiosServicePeer::ID);
 			$services=NagiosServicePeer::doSelect($c);
 			$result= array();
-			foreach($services as $service) {
+			foreach ($services as $service) {
 				$answer = $service->toArray();
 				$answer["parameters"]=$service->getNagiosServiceCheckCommandParameters()->toArray();
 				array_push($result,$answer);
@@ -413,19 +361,25 @@ class ObjectManager {
 			return $result;
 		}
 	}
-	/* LILAC - Get Service by HostTemplate */	
-	public function getServicesByHostTemplate($templateHostName){	
+
+
+	/**
+	 * @brief	get all services attached to a specified Lilac HostTemplate
+	 * @param	$hostName	The HostTemplate to query
+	 * @return	an array containing a list of services attached to HostTemplate
+	 */
+	public function getServicesByHostTemplate($templateHostName) {
 		$nhtp = new NagiosHostTemplatePeer();
 		$templateHost = $nhtp->getByName($templateHostName);
-		if(!$templateHost) {
-			return "No hostTemplate named $templateHostName.\n";
-		}else {
+		if (!$templateHost) {
+		 	return "No hostTemplate named $templateHostName.\n";
+		} else {
 			$c = new Criteria();
 			$c->add(NagiosServicePeer::HOST_TEMPLATE, $templateHost->getId());
 			$c->addAscendingOrderByColumn(NagiosServicePeer::DESCRIPTION );
 			$services=NagiosServicePeer::doSelect($c);
 			$result= array();
-			foreach($services as $service) {
+			foreach ($services as $service) {
 				$answer = $service->toArray();
 				$answer["parameters"]=$service->getNagiosServiceCheckCommandParameters()->toArray();
 				array_push($result,$answer);
@@ -433,53 +387,61 @@ class ObjectManager {
 			return $result;
 		}
 	}
-	/* RGMWEB-LIVESTATUS - Get dowtimes*/	
-	public function getDowntimes(){
+
+	/**
+	 * @brief	Retrieve Nagios Downtimes from LiveStatus
+	 * @return	an array containing a list of active downtimes
+	 */
+	public function getDowntimes() {
 		$downtime=array();
-		$tab=array("author","comment","duration","end_time","entry_time","fixed","id","is_service","triggered_by","type","start_time");
-		$tabDate=array("end_time","entry_time","start_time");
-		foreach($this->listNagiosObjects("downtimes",NULL,$tab)["default"] as $downtimes){
-			foreach($downtimes as $k=>$down){
-		
-					if(in_array($k,$tabDate)){
-						$ta["human_".$k]=gmdate("Y-m-d\TH:i:s\Z",$down);
-					}
-					$ta[$k]=$down;
+		$tab=array("author", "comment", "duration", "end_time", "entry_time", "fixed", "id", "is_service", "triggered_by", "type", "start_time");
+		$tabDate=array("end_time", "entry_time", "start_time");
+		foreach ($this->listNagiosObjects("downtimes",NULL,$tab)["default"] as $downtimes) {
+			foreach ($downtimes as $k=>$down) {
+				if (in_array($k,$tabDate)) {
+					$ta["human_".$k]=gmdate("Y-m-d\TH:i:s\Z",$down);
 				}
+				$ta[$k]=$down;
+			}
 			array_push($downtime,$ta);
 		}
 		return $downtime;
 	}
-	/* RGMWEB-LIVESTATUS - Get Hosts Down*/	
-	public function getHostsDown(){
+
+	/**
+	 * @brief	Retrieve Nagios hosts currently down from LiveStatus
+	 * @return	an array containing a list of down hosts
+	 */
+	public function getHostsDown() {
 		$HostsDown=array();
-		$tabColumns=array("id","name","address","services_with_state","last_state_change","acknowledged","acknowledged_type","comment","comments_with_info","notifications_enabled");
+		$tabColumns=array("id", "name", "address", "services_with_state", "last_state_change",
+			"acknowledged", "acknowledged_type", "comment", "comments_with_info", "notifications_enabled");
 		$tabFilters=array("state = 1");
 		$tabDate=array("last_state_change");
 		$tabConcat=array("comments_with_info");
 
 		$dateT=array();
-		foreach($this->listNagiosObjects("hosts",NULL,$tabColumns,$tabFilters)["default"] as $hd ){
-			foreach($hd as $k=>$hdown){
-					if(in_array($k,$tabDate)){
+		foreach ($this->listNagiosObjects("hosts",NULL,$tabColumns,$tabFilters)["default"] as $hd ) {
+			foreach ($hd as $k=>$hdown) {
+					if (in_array($k,$tabDate)) {
 						$ta["human_".$k]=gmdate("Y-m-d\TH:i:s\Z",$hdown);
-						$dateT=($k=="last_state_change"?array("last_state_change"=>$hdown):NULL);
-					}elseif(in_array($k,$tabConcat)){
+						$dateT = ($k=="last_state_change" ? array("last_state_change"=>$hdown): NULL);
+					} elseif (in_array($k,$tabConcat)) {
 						$concat="";
-						if(sizeof($hd[$k])>0){
-							for($i=0;$i<=sizeof($hd[$k])-1;$i++){
-								if(sizeof($hd[$k][$i])>0){
-								for($j=0;$j<=sizeof($hd[$k][$i])-1;$j++){
-									$concat.=$hd[$k][$i][$j]." | ";
+						if(sizeof($hd[$k])>0) {
+							for ($i=0; $i <= sizeof($hd[$k])-1; $i++) {
+								if (sizeof($hd[$k][$i]) > 0) {
+									for ($j=0; $j <= sizeof($hd[$k][$i])-1; $j++) {
+										$concat .= $hd[$k][$i][$j] . " | ";
+									}
 								}
-							}
-								$concat.=(sizeof($hd[$k][$i])>1? NULL: "|");
+								$concat .= (sizeof($hd[$k][$i]) > 1 ? NULL: "|");
 							}
 						}
 						$ta["human_".$k]=$concat;
 						$ta["date"]=time();
 						$ta["human_date"]=gmdate("Y-m-d\TH:i:s\Z",$ta["date"]);
-						if(isset($dateT["last_state_change"])){
+						if (isset($dateT["last_state_change"])) {
 							$date1=new DateTime();
 							$date2=new DateTime();
 							$date2->setTimestamp($dateT["last_state_change"]);
@@ -493,80 +455,118 @@ class ObjectManager {
 		}
 		return($HostsDown);
 	}
+
+	/**
+	 * @brief	Retrieve Nagios services currently down from LiveStatus
+	 * @return	an array containing a list of down services
+	 */
 	/* RGMWEB-LIVESTATUS - Get Services Down*/	
-	public function getServicesDown(){
-		
+	public function getServicesDown() {
 
 		$ServiceDown=array();
-		$tabColumns=array("id","host_name","host_address","display_name","acknowledged","acknowledged_type","comment","comments_with_info","last_state_change");
-		$tabFilters=array("state > 0","host_state = 0","state_type = 1",);
+		$tabColumns=array("id", "host_name", "host_address", "display_name", "acknowledged",
+			"acknowledged_type", "comment", "comments_with_info", "last_state_change");
+		$tabFilters=array("state > 0", "host_state = 0", "state_type = 1");
 		$tabDate=array("last_state_change");
 		$tabConcat=array("comments_with_info");
 
 		$dateT=array();
-		foreach($this->listNagiosObjects("services",NULL,$tabColumns,$tabFilters)["default"] as $sd ){
-			foreach($sd as $k=>$sdown){
-					if(in_array($k,$tabDate)){
-						$ta["human_".$k]=gmdate("Y-m-d\TH:i:s\Z",$sdown);
-						$dateT=($k=="last_state_change"?array("last_state_change"=>$sdown):NULL);
-					}elseif(in_array($k,$tabConcat)){
-						$concat="";
-						if(sizeof($sd[$k])>0){
-							for($i=0;$i<=sizeof($sd[$k])-1;$i++){
-								if(sizeof($sd[$k][$i])>0){
-								for($j=0;$j<=sizeof($sd[$k][$i])-1;$j++){
-									$concat.=$sd[$k][$i][$j]." | ";
+		foreach ($this->listNagiosObjects("services", NULL, $tabColumns, $tabFilters)["default"] as $sd ) {
+			foreach ($sd as $k=>$sdown) {
+				if(in_array($k,$tabDate)) {
+					$ta["human_".$k] = gmdate("Y-m-d\TH:i:s\Z", $sdown);
+					$dateT = ($k=="last_state_change" ? array("last_state_change"=>$sdown): NULL);
+				} elseif (in_array($k,$tabConcat)) {
+					$concat="";
+					if (sizeof($sd[$k]) > 0) {
+						for ($i=0; $i <= sizeof($sd[$k])-1; $i++) {
+							if (sizeof($sd[$k][$i]) > 0) {
+								for ($j=0; $j <= sizeof($sd[$k][$i])-1; $j++) {
+									$concat .= $sd[$k][$i][$j] . " | ";
 								}
 							}
-								$concat.=(sizeof($sd[$k][$i])>1? NULL: "|");
-							}
-						}
-						$ta["human_".$k]=$concat;
-						$ta["date"]=time();
-						$ta["human_date"]=gmdate("Y-m-d\TH:i:s\Z",$ta["date"]);
-						if(isset($dateT["last_state_change"])){
-							$date1=new DateTime();
-							$date2=new DateTime();
-							$date2->setTimestamp($dateT["last_state_change"]);
-							$interval=$date2->diff($date1);
-							$ta["human_duration"]=$interval->format('%ad %hh %im %ss ');
+							$concat .= (sizeof($sd[$k][$i]) > 1 ? NULL: "|");
 						}
 					}
-					$ta[$k]=$sdown;
+					$ta["human_".$k] = $concat;
+					$ta["date"] = time();
+					$ta["human_date"] = gmdate("Y-m-d\TH:i:s\Z", $ta["date"]);
+					if (isset($dateT["last_state_change"])) {
+						$date1=new DateTime();
+						$date2=new DateTime();
+						$date2->setTimestamp($dateT["last_state_change"]);
+						$interval=$date2->diff($date1);
+						$ta["human_duration"] = $interval->format('%ad %hh %im %ss ');
+					}
 				}
+				$ta[$k] = $sdown;
+			}
 			array_push($ServiceDown,$ta);
 		}
-		
 		return $ServiceDown;
 	}
 
-	/* LILAC - get Nagios ressources */
-	public function getResources(){
+	/**
+	 * @brief	Retrieve Nagios "user macros" from Lilac
+	 * @return	an array containing a the user macros
+	 */
+	public function getResources() {
 		$error = "";
 		$success = "";
-		$code=0;
-		try{
+		$code = 0;
+		try {
 			$resourceCfg = NagiosResourcePeer::doSelectOne(new Criteria());
-			if(!$resourceCfg) {
+			if (!$resourceCfg) {
 				$code=1;
 				$error .= "No resources initialize."; 
-			}else{
+			} else {
 				return $resourceCfg->toArray();
 			}
-
-		}catch (Exception $e){
-			$code=1;
+		}catch (Exception $e) {
+			$code = 1;
 			$error .= "An exception occured : $e";
 		}
-
 		$logs = $this->getLogs($error, $success);
-
-		return array("code"=>$code,"description"=>$logs);
+		return array("code"=>$code, "description"=>$logs);
 	}
 
-########################################## CREATE
-	/* LILAC - create contact */ 
-	public function createContact($contactName, $contactAlias="description", $contactMail, $contactPager="", $contactGroup="",$serviceNotificationCommand="notify-by-email-service",$hostNotificationCommand="notify-by-email-host", $options=NULL, $exportConfiguration = FALSE ){
+	/**
+	 * @brief	Create a Lilac ContactName object
+	 * @param	$contactName a valid Lilac ContactName. Must be unique
+	 * @param	$contactAlias a string  that contains the contact desciption. Defaults to **"description"**
+	 * @param	$contactMail a string  that contains the contact email address. Can't be **null**
+	 * @param	$contactPager a string  that contains the contact *pager* number. Defaults to **""** (empty string)
+	 * @param	$contactGroup a valid Lilac ContactGroup object. Defaults to **""** (empty string)
+	 * @param	$serviceNotificationCommand a valid Lilac Command objet used as command for Nagios service notifier. Default to **"rgm_service_notifier"**
+	 * @param	$hostNotificationCommand a valid Lilac Command objet used as command for Nagios host notifier. Default to **"rgm_host_notifier"**
+	 * @param	$options a list array of optional flags. currently supported flags are:
+	 *			| flag |
+	 *			|------|
+	 *			| host_notification_period  |
+	 *			| service_notification_period  |
+	 *			| host_notification_options_down  |
+	 *			| host_notification_options_flapping  |
+	 *			| host_notification_options_recovery  |
+	 *			| host_notification_options_scheduled_downtime  |
+	 *			| host_notification_options_unreachable  |
+	 *			| service_notification_options_critical  |
+	 *			| service_notification_options_flapping  |
+	 *			| service_notification_options_recovery  |
+	 *			| service_notification_options_unknown  |
+	 *			| service_notification_options_warning  |
+	 *			| can_submit_commands  |
+	 *			| retain_status_information  |
+	 *			| retain_nonstatus_information  |
+	 *			| host_notifications_enabled  |
+	 *			| service_notifications_enabled  |
+	 * @param	$exportConfiguration = FALSE
+	 * @return	
+	 */
+	public function createContact($contactName, $contactAlias="description", $contactMail,
+		$contactPager="", $contactGroup="", $serviceNotificationCommand="rgm_service_notifier",
+		$hostNotificationCommand="rgm_host_notifier", $options=NULL,
+		$exportConfiguration = FALSE)
+	{
 		$error = "";
 		$success = "";
 		$code=0;
@@ -574,98 +574,92 @@ class ObjectManager {
 		$ncp = new NagiosContactPeer;
 		// Find host
 		$contact = $ncp->getByName($contactName);
-		if($contact) {
+		if ($contact) {
 			$code=1;
 			$error .= "$contactName already exists\n";
-		}else{
+		} else {
 			$tempContact = new NagiosContact();
-			try{
+			try {
 				$tempContact->setName($contactName);
 				$tempContact->setAlias($contactAlias);
 				$tempContact->setEmail($contactMail);
 				$tempContact->setPager($contactPager);
 				$tempContact->addServiceNotificationCommandByName($serviceNotificationCommand);
 				$tempContact->addHostNotificationCommandByName($hostNotificationCommand);
-				if($options){
-					if(array_key_exists('host_notification_period',$options)){
+				if ($options) {
+					if (array_key_exists('host_notification_period',$options))
 						$tempContact->setHostNotificationPeriodByName(strval($options->host_notification_period));
-					}
-					if(array_key_exists('service_notification_period',$options)){
+					if (array_key_exists('service_notification_period',$options))
 						$tempContact->setServiceNotificationPeriodByName(strval($options->service_notification_period));
-					}
-					
-					if(!array_key_exists('host_notification_options_down',$options)){
+					if (!array_key_exists('host_notification_options_down',$options))
 						$tempContact->setHostNotificationOnDown(0);
-					}else $tempContact->setHostNotificationOnDown(intval($options->host_notification_options_down));
-
-					if(!array_key_exists('host_notification_options_flapping',$options)){
+					else
+						$tempContact->setHostNotificationOnDown(intval($options->host_notification_options_down));
+					if (!array_key_exists('host_notification_options_flapping',$options))
 						$tempContact->setHostNotificationOnFlapping(0);
-					}else $tempContact->setHostNotificationOnFlapping($options->host_notification_options_flapping);
-
-					if(!array_key_exists('host_notification_options_recovery',$options)){
+					else $tempContact->setHostNotificationOnFlapping($options->host_notification_options_flapping);
+					if (!array_key_exists('host_notification_options_recovery',$options))
 						$tempContact->setHostNotificationOnRecovery(0);
-					}else $tempContact->setHostNotificationOnRecovery($options->host_notification_options_recovery);
-
-					if(!array_key_exists('host_notification_options_scheduled_downtime',$options)){
+					else
+						$tempContact->setHostNotificationOnRecovery($options->host_notification_options_recovery);
+					if (!array_key_exists('host_notification_options_scheduled_downtime',$options))
 						$tempContact->setHostNotificationOnScheduledDowntime(0);
-					}else $tempContact->setHostNotificationOnScheduledDowntime($options->host_notification_options_scheduled_downtime);
-					
-					if(!array_key_exists('host_notification_options_unreachable',$options)){
+					else
+						$tempContact->setHostNotificationOnScheduledDowntime($options->host_notification_options_scheduled_downtime);
+					if (!array_key_exists('host_notification_options_unreachable',$options))
 						$tempContact->setHostNotificationOnUnreachable(0);
-					}else $tempContact->setHostNotificationOnUnreachable($options->host_notification_options_unreachable);
-					
-					if(!array_key_exists('service_notification_options_critical',$options)){
+					else
+						$tempContact->setHostNotificationOnUnreachable($options->host_notification_options_unreachable);
+					if (!array_key_exists('service_notification_options_critical',$options))
 						$tempContact->setServiceNotificationOnCritical(0);
-					}else $tempContact->setServiceNotificationOnCritical($options->service_notification_options_critical);
-					
-					if(!array_key_exists('service_notification_options_flapping',$options)){
+					else
+						$tempContact->setServiceNotificationOnCritical($options->service_notification_options_critical);
+					if (!array_key_exists('service_notification_options_flapping',$options))
 						$tempContact->setServiceNotificationOnFlapping(0);
-					}else $tempContact->setServiceNotificationOnFlapping($options->service_notification_options_flapping);
-					
-					if(!array_key_exists('service_notification_options_recovery',$options)){
+					else
+						$tempContact->setServiceNotificationOnFlapping($options->service_notification_options_flapping);
+					if (!array_key_exists('service_notification_options_recovery',$options))
 						$tempContact->setServiceNotificationOnRecovery(0);
-					}else $tempContact->setServiceNotificationOnRecovery($options->service_notification_options_recovery);
-					
-					if(!array_key_exists('service_notification_options_unknown',$options)){
+					else
+						$tempContact->setServiceNotificationOnRecovery($options->service_notification_options_recovery);
+					if (!array_key_exists('service_notification_options_unknown',$options))
 						$tempContact->setServiceNotificationOnUnknown(0);
-					}else $tempContact->setServiceNotificationOnUnknown($options->service_notification_options_unknown);
-					
-					if(!array_key_exists('service_notification_options_warning',$options)){
+					else
+						$tempContact->setServiceNotificationOnUnknown($options->service_notification_options_unknown);
+					if (!array_key_exists('service_notification_options_warning',$options))
 						$tempContact->setServiceNotificationOnWarning(0);
-					}else $tempContact->setServiceNotificationOnWarning($options->service_notification_options_warning);
-					
-					if(!array_key_exists('can_submit_commands',$options)){
+					else
+						$tempContact->setServiceNotificationOnWarning($options->service_notification_options_warning);
+					if (!array_key_exists('can_submit_commands',$options))
 						$tempContact->setCanSubmitCommands(0);
-					}else $tempContact->setCanSubmitCommands($options->can_submit_commands);
-					
-					if(!array_key_exists('retain_status_information',$options)){
+					else
+						$tempContact->setCanSubmitCommands($options->can_submit_commands);
+					if (!array_key_exists('retain_status_information',$options))
 						$tempContact->setRetainStatusInformation(0);
-					}else $tempContact->setRetainStatusInformation($options->retain_status_information);
-					
-					if(!array_key_exists('retain_nonstatus_information',$options)){
+					else
+						$tempContact->setRetainStatusInformation($options->retain_status_information);
+					if (!array_key_exists('retain_nonstatus_information',$options))
 						$tempContact->setRetainNonstatusInformation(0);	
-					}else $tempContact->setRetainNonstatusInformation($options->retain_nonstatus_information);		
-					
-					if(!array_key_exists('host_notifications_enabled',$options)){
+					else
+						$tempContact->setRetainNonstatusInformation($options->retain_nonstatus_information);		
+					if (!array_key_exists('host_notifications_enabled',$options))
 						$tempContact->setHostNotificationsEnabled(0);
-					}else $tempContact->setHostNotificationsEnabled($options->host_notifications_enabled);
-					
-					if(!array_key_exists('service_notifications_enabled',$options)){
+					else
+						$tempContact->setHostNotificationsEnabled($options->host_notifications_enabled);
+					if (!array_key_exists('service_notifications_enabled',$options))
 						$tempContact->setServiceNotificationsEnabled(0);
-					}else $tempContact->setServiceNotificationsEnabled($options->service_notifications_enabled);	
-					
+					else
+						$tempContact->setServiceNotificationsEnabled($options->service_notifications_enabled);	
 				}
-				
 				$tempContact->save();
-			}catch(Exception $e) {
+			} catch (Exception $e) {
 				$code=1;
 				$error .= $e->getMessage();
 			}
 			
-			
-			if(!empty($contactGroup)){
-				$ncg= NagiosContactGroupPeer::getByName($contactGroup);
-				if($ncg) {
+			if (!empty($contactGroup)) {
+				$ncg = NagiosContactGroupPeer::getByName($contactGroup);
+				if ($ncg) {
 					$contactGroupMember = new NagiosContactGroupMember();
 					$contactGroupMember->setContact($tempContact->getId());
 					$contactGroupMember->setContactgroup($ncg->getId());
@@ -674,12 +668,11 @@ class ObjectManager {
 			}
 			$success .= "contact had been created."; 
 
-			if( $exportConfiguration == TRUE )
+			if ($exportConfiguration == TRUE)
 				$this->exportConfigurationToNagios($error, $success);
 		}
 		
 		$logs = $this->getLogs($error, $success);
-		
         return array("code"=>$code,"description"=>$logs);
 	}
 
