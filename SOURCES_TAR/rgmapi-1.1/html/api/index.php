@@ -1,14 +1,21 @@
 <?php
-/*
-#
-# RGMAPI
-# Route calls
-#
-# Copyleft 2018 RGM
-# Author: BU DCA Team based on Adrien van den Haak initial work (https://github.com/EyesOfNetworkCommunity/rgmapi)
-#
-#
-*/
+/**
+ * RGMAPI
+ * Route calls
+ *
+ * Copyleft 2018 RGM
+ * Author: BU DCA Team based on Adrien van den Haak initial work (https://github.com/EyesOfNetworkCommunity/eonapi)
+ * 
+ * LICENCE :
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
 
 
 require "/srv/rgm/rgmapi/include/Slim/Slim.php";
@@ -19,14 +26,9 @@ require "/srv/rgm/rgmapi/include/ObjectManager.php";
 \Slim\Slim::registerAutoloader();
 $app = new \Slim\Slim();
 
-/* API routes are defined here (http method / association route / function) */
-//GET
-//$app->get('/getApiKey', 'getApiKey');
-//$app->get('/getAuthenticationStatus', 'getAuthenticationStatus');
-$app->get('/getAuthToken', 'getAuthToken');
-$app->get('/checkAuthToken', 'checkAuthToken');
-
-//POST (parameters in body)
+/**
+ *  API routes are defined here (http method, association route, function, privileges)
+ */
 addRoute('get', '/getDowntimes', 'getDowntimes', ACL_READONLY);
 addRoute('get', '/getHostsDown', 'getHostsDown', ACL_READONLY);
 addRoute('get', '/getResources', 'getResources', ACL_READONLY);
@@ -154,10 +156,22 @@ addRoute('post', '/listNagiosBackends', 'listNagiosBackends', ACL_READONLY);
 addRoute('get', '/listOneLinersTags', 'listOneLinersTags', ACL_READONLY);
 addRoute('get', '/listOneLinersItems', 'listOneLinersItems', ACL_READONLY);
 
+/**
+ * getAuthToken and checkAuthToken are *not* wrapped through addRoute()
+ * as they handle token stuff an addRoute() assume the token is *already*
+ * generated.
+ */
+$app->get('/getAuthToken', 'getAuthToken');
+$app->get('/checkAuthToken', 'checkAuthToken');
+
 
 /**
  * @brief   Kind of framework to add routes very easily
  * @details This function registers Slim routes to ObjectManager methods
+ * @param   $httpMethod HTTP method (get, post, put, etc.) to use for route registration
+ * @param   $routeName the API route name
+ * @param   $methodName the callback function to register with this route, implemented on ObjectManager class
+ * @param   $acl the ACL the caller must comply with
  */
 function addRoute($httpMethod, $routeName, $methodName, $acl) {
 	
@@ -167,14 +181,31 @@ function addRoute($httpMethod, $routeName, $methodName, $acl) {
 		
         $request = \Slim\Slim::getInstance()->request();
         $response = \Slim\Slim::getInstance()->response();
+        $body = json_decode($request->getBody(), true);
+        if (($err = json_last_error()) != 0) {
+            $array = array("error" => 'JSON Error');
+            switch ($err) {
+                case JSON_ERROR_DEPTH: $array['error'] = 'JSON Error: JSON_ERROR_DEPTH'; break;
+                case JSON_ERROR_STATE_MISMATCH: $array['error'] = 'JSON Error: JSON_ERROR_STATE_MISMATCH'; break;
+                case JSON_ERROR_CTRL_CHAR: $array['error'] = 'JSON Error: JSON_ERROR_CTRL_CHAR'; break;
+                case JSON_ERROR_SYNTAX: $array['error'] = 'JSON Error: JSON_ERROR_SYNTAX'; break;
+                case JSON_ERROR_UTF8: $array['error'] = 'JSON Error: JSON_ERROR_UTF8'; break;
+                case JSON_ERROR_RECURSION: $array['error'] = 'JSON Error: JSON_ERROR_RECURSION'; break;
+                case JSON_ERROR_INF_OR_NAN: $array['error'] = 'JSON Error: JSON_ERROR_INF_OR_NAN'; break;
+                case JSON_ERROR_UNSUPPORTED_TYPE: $array['error'] = 'JSON Error: JSON_ERROR_UNSUPPORTED_TYPE'; break;
+                case JSON_ERROR_INVALID_PROPERTY_NAME: $array['error'] = 'JSON Error: JSON_ERROR_INVALID_PROPERTY_NAME'; break;
+                case JSON_ERROR_UTF16: $array['error'] = 'JSON Error: JSON_ERROR_UTF16'; break;
+            }
+            $result = getJsonResponse($response, "406", $array);
+            echo $result;
+            return;
+        }
         $authOk = false;
-
-        $body = json_decode($request->getBody());
         $logs = "";
         $className = 'ObjectManager';
         $params = array(array(), array());
         $msg = '';
-        $token = getTokenParameter($request);
+        $token = getTokenParameter($request, $body);
 
         // retrieve routed function parameters, ensure all parameters are provided
         // (or have an acceptable default value in function)
@@ -182,21 +213,28 @@ function addRoute($httpMethod, $routeName, $methodName, $acl) {
         foreach ($reflector->getParameters() as $param) {
             $params[0][] = $param->name;
             $params[1][$param->name] = null;
+            // first, set default value, if exists
             if ($param->isDefaultValueAvailable()) {
                 $params[1][$param->name] = $param->getDefaultValue();
             }
+            //second, header value takes precedence over default value
             if ($header = $request->headers->get($param->name)) {
                 $params[1][$param->name] = $header;
             }
+            //third, parameter value takes precedence over header value
             if ( $var = $request->get($param->name)) {
                 $params[1][$param->name] = $var;
             }
+            // finally, data value takes precedence over all other
+            if (isset($body["$param->name"])) {
+                $params[1][$param->name] = $body["$param->name"];
+            }
+        }
+        if (isset($params['token'])) {
+            unset($params['token']);
         }
         // ensure passed parameters are required by routed function
         foreach ($request->get() as $key => $value) {
-            if ($key == 'token') {
-                continue;
-            }
             if (in_array( $key, $params[0]) == false) {
                 if ($msg != '') $msg .= ', ';
                 $msg .= 'unknown parameter: ' . $key;

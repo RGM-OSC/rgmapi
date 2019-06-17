@@ -1,18 +1,18 @@
 <?php
-/*
-#
-# RGMAPI - Create objects
-#
-# Copyright (c) 2017 AXIANS Cloud Builder
-# Author: Jean-Philippe Levy <jean-philippe.levy@axians.com>
-#
-# Copyright (c) 2017 AXIANS C&S
-# Author: Adrien van den Haak <adrien.vandenhaak@axians.com>
-#
-# Copyright (c) 2017 AXIANS Cloud Builder
-# Contributor: Hoarau Jeremy <jeremy.hoarau@axians.com>
-#
-*/
+/**
+ * RGMAPI - RGM Objects class
+ * 
+ * Copyright (c) 2017 AXIANS C&S
+ * Author: Adrien van den Haak <adrien.vandenhaak@axians.com>
+ *
+ * Copyright (c) 2017 AXIANS Cloud Builder
+ * Author: Jean-Philippe Levy <jean-philippe.levy@axians.com>
+ * Contributor: Hoarau Jeremy <jeremy.hoarau@axians.com>
+ *
+ * Copyright (c) 2019 RGM Team
+ * Michael Aubertin <maubertin@fr.scc.com>
+ * Eric Belhomme <ebelhomme@fr.scc.com>
+ */
 
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT & ~E_WARNING);
  
@@ -25,27 +25,24 @@ include("/srv/rgm/lilac/includes/config.inc");
 
 use Nagios\Livestatus\Client;
 
-# Class with all api functions
+/**
+ * @brief	A class that encapsulates all RGM API calls functions
+ */
 class ObjectManager {
     
 	private $authUser;
 		
-    function __construct($username){
-		# Get api userName
-		// $request = \Slim\Slim::getInstance()->request();
-		// $this->authUser = $request->get('username');
+    function __construct($username) {
+		/**
+		 * The username is filled during object instanciation
+		 */
 		$this->authUser = $username;
 	}
-	
-	/* LILAC - List Hosts */
-	public function listHosts( $hostName = false, $hostTemplate = false ){
-		
-		return true;
-		
-	}
-########################################## GET
-	/* RGMAPI - Display results */
-    private function getLogs($error, $success){
+
+	/**
+	 * @brief	log function
+	 */
+    private function getLogs($error, $success) {
         $logs = $error.$success;
         $countLogs = substr_count($logs, "\n");
         
@@ -55,8 +52,141 @@ class ObjectManager {
             $logs = str_replace("\n", "", $logs);
 
         return rtrim($logs," | ");
+	}
+
+	/**
+	 * @brief	Exports Lilac configuration to Nagios config file
+	 * @param	&$error	a string reference to notify on error
+	 * @param	&$success a string reference to notify on success
+	 * @param	$jobName the export job name as stored into Lilac export table
+	 */
+	private function exportConfigurationToNagios(&$error = "", &$success = "", $jobName = "nagios") {
+        $c = new Criteria();
+        //$c->add(ExportJobPeer::END_TIME, null);
+        $exportJobs = ExportJobPeer::doSelect($c);
+        
+        $nagiosJobId = NULL;
+        foreach($exportJobs as $job){
+            if( $job->getName() == $jobName ){
+                $nagiosJobId = $job->getId();
+                break;
+            }
+        }
+
+        if( $nagiosJobId != NULL ){
+            $exportJob = ExportJobPeer::retrieveByPK( $nagiosJobId );
+            $exportJob->setStatusCode(ExportJob::STATUS_STARTING);
+            $exportJob->setStartTime(time());
+            $exportJob->setStatus("Starting...");
+            $exportJob->save();
+            exec("php /srv/rgm/lilac/exporter/export.php " . $exportJob->getId() . " > /dev/null 2>&1", $tempOutput, $retVal);   
+            
+            $success .= $jobName." : Nagios configuration exported\n";
+        }
+        else{
+            $error .= "ERROR during nagios configuration export\n";
+        }            
     }
-	/* LILAC - Get Host */
+
+	/**
+	 * @brief	check a LiveStatus socket status
+	 * @param	$type	socket type (unix or TCP)
+	 * @param	$address target IP address
+	 * @param	$port target TCP port
+	 * @param	$path unix socket path
+	 * @return	a file handle on the opened socket, or **false** if the connection failed
+	 */
+	private function checkLiveStatusSocket($type, $address, $port, $path) {
+		$host = false;
+		if($type == "unix"){
+			$socket_path_connexion = "unix://".$path;
+			$host = fsockopen($socket_path_connexion, $port, $errno, $errstr, 5);
+		}
+		else{
+			$host = fsockopen($address, $port, $errno, $errstr, 5);
+		}
+		return $host;
+	}
+	/* LIVESTATUS - set nagios objects */
+/*	private function SetNagiosObjects( $object, $backendid = NULL, $columns = FALSE, $filters = FALSE ) {
+	
+		// loop on each socket
+		$sockets = getRGMConfig("sockets","array");
+
+		if($backendid != NULL) {
+			$sockets = array_slice($sockets,$backendid,1);
+		}
+		foreach($sockets as $socket){
+			$socket_parts = explode(":", $socket);
+			$socket_type = $socket_parts[0];
+			$socket_address = $socket_parts[1];
+			$socket_port = $socket_parts[2];
+			$socket_path = $socket_parts[3];
+			$socket_name = $socket;
+
+			// check if socket disabled
+			if(isset($socket_parts[4]) && $backendid == NULL) {
+				continue;
+			}
+
+			// check if socket is up
+			if( $this->checkLiveStatusSocket($socket_type,$socket_address,$socket_port,$socket_path) ){
+				if($socket_port == -1){
+					$socket_port = "";
+					$socket_address = "";
+					$socket_name = "default";
+				}
+				$options = array(
+					'socketType' => $socket_type,
+					'socketAddress' => $socket_address,
+					'socketPort' => $socket_port,
+					'socketPath' => $socket_path
+				);
+
+				// construct mklivestatus request, and get the response
+				$client = new Client($options);
+
+				// get objects
+				$result[$socket_name] = $client->get($object);
+				
+				// get columns
+				if($columns) {
+					$result[$socket_name] = $result[$socket_name]->columns($columns);
+				}		
+
+				// get filters
+				if($filters) {
+					foreach($filters as $filter) {
+						$result[$socket_name] = $result[$socket_name]->filter($filter);
+					}
+				}
+
+				// set user
+				$result[$socket_name] = $result[$socket_name]->authUser($this->authUser);
+				
+				// execute
+				$result[$socket_name] = $result[$socket_name]->executeAssoc();
+			}
+		}
+
+		// response for the Ajax call
+		// print_r($result);
+		return $result;
+
+	}*/
+
+
+	/* LILAC - List Hosts */
+	public function listHosts( $hostName = false, $hostTemplate = false ){
+		
+		return true;
+		
+	}
+	/**
+	 * @brief	returns a Lilac Host object for referenced hostname
+	 * @param	$hostName	the Lilac HostName object to retrieve
+	 * @return	an array that describes the hostname
+	 */
 	public function getHost( $hostName){
         $nhp = new NagiosHostPeer;
 		// Find host
@@ -67,8 +197,12 @@ class ObjectManager {
 			return "Host named ".$hostName." doesn't exist."; 
 		}
 	}
-	/* LILAC - Get Hosts by template name */
-	public function getHostsBytemplate( $templateHostName){
+	/**
+	 * @brief	get a host list that belongs to specified Lilac HostTemplate
+	 * @param	$templateHostName	The HostTemplate name to look for
+	 * @return	a list of hostnames
+	 */
+	public function getHostsBytemplate($templateHostName) {
         $nhtp = new NagiosHostTemplatePeer;
 		// Find host template
 		$template_host = $nhtp->getByName($templateHostName);
@@ -87,8 +221,12 @@ class ObjectManager {
 			}
 		}
 	}
-	/* LILAC - Get Hosts templates by name */
-	public function getHostTemplate( $templateHostName ){
+	/**
+	 * @brief	get HostTemplate details
+	 * @param	$templateHostName	the HostTemplate name to look for
+	 * @return	an array that describes the HostTemplate 
+	 */
+	public function getHostTemplate($templateHostName) {
 
         // Check for pre-existing host template with same name        
         $nhtp = new NagiosHostTemplatePeer;
@@ -100,8 +238,12 @@ class ObjectManager {
 			return "Host named ".$templateHostName." doesn't exist."; 
 		}
 	}
-	/* LILAC - Get Host by  HostGroup */
-	public function getHostsByHostGroup( $hostGroupName){
+	/**
+	 * @brief	get a host list that belongs to specified Lilac HostGroup
+	 * @param	$hostGroupName	The HostGroup name to look for
+	 * @return	a list of hostnames
+	 */
+	public function getHostsByHostGroup($hostGroupName) {
 		$nhgp = new NagiosHostgroupPeer;
 		//Find HostGroup
 		$hostGroup = $nhgp->getByName( $hostGroupName );
@@ -121,8 +263,12 @@ class ObjectManager {
 		}
 	}
 
-	/* LILAC - Get HostGroup */
-	public function getHostGroup( $hostGroupName){
+	/**
+	 * @brief	get details for a specified Lilac HostGroup name
+	 * @param	$hostGroupName the HostGroup name to describe
+	 * @return	an array of HostGroup details
+	 */
+	public function getHostGroup($hostGroupName) {
 		$nhgp = new NagiosHostgroupPeer;
 		//Find HostGroup
 		$hostGroup = $nhgp->getByName( $hostGroupName );
@@ -132,8 +278,15 @@ class ObjectManager {
 			return $hostGroup->toArray();
 		}
 	}
-	/* LILAC - Get Contact */	
-	public function getContact($contactName=FALSE){
+
+	/**
+	 * @brief	get Lilac Contact Names
+	 * @details	returns a Lilac ContactName, or a **list** of ContactName
+	 * @param	$contactName the Lilac ContactName to search, or **false** to
+	 * 			list all ContactName (defaults to false)
+	 * @return	a ContactName detail *or* a list of ContactName
+	 */
+	public function getContact($contactName=FALSE) {
 		if(!$contactName){
 			$c = new Criteria();
 			$c->addAscendingOrderByColumn(NagiosContactPeer::NAME);
@@ -153,10 +306,16 @@ class ObjectManager {
 				return $contact->toArray();
 			}
 		}
-		
 	}
-	/* LILAC - Get ContactGroup */
-	public function getContactGroups($contactGroupName=FALSE){
+
+	/**
+	 * @brief	get Lilac Contact Groups
+	 * @details	returns a Lilac ContactGroup, or a **list** of ContactGroup
+	 * @param	$contactGroupName the Lilac ContactGroup to search, or **false** to
+	 * 			list all ContactName (defaults to false)
+	 * @return	a ContactGroup detail *or* a list of ContactGroup
+	 */
+	public function getContactGroups($contactGroupName=FALSE) {
 		if(!$contactGroupName){
 			$c = new Criteria();
 			$c->addAscendingOrderByColumn(NagiosContactGroupPeer::NAME);
@@ -177,16 +336,43 @@ class ObjectManager {
 			}
 		}
 	}
-	/* LILAC - get command */
+
+	/**
+	 * @brief	get Lilac Commands
+	 * @details	returns a Lilac Command, or a **list** of Commands
+	 * @param	$commandName the Lilac Command to search, or **false** to
+	 * 			list all Commands (defaults to false)
+	 * @return	a Command detail *or* a list of Commands
+	 */
 	public function getCommand($commandName){
-		$ncp = new NagiosCommandPeer;
-		$targetCommand = $ncp->getByName($commandName);
-        if(!$targetCommand) {
-            return  "The command '".$commandName."' does not exist\n";
-        }else{
-			return $targetCommand->toArray();
+		if (!$commandName) {
+			$c = new Criteria();
+			$c->addAscendingOrderByColumn(NagiosCommandPeer::NAME);
+			$result=array();
+			$command_list = NagiosCommandPeer::doSelect($c);
+			foreach($command_list as $command){
+				array_push($result, $command->toArray());
+			}
+			return $result;
+		} else {
+			$ncp = new NagiosCommandPeer;
+			$targetCommand = $ncp->getByName($commandName);
+			if(!$targetCommand) {
+				return  "The command '".$commandName."' does not exist\n";
+			}else{
+				return $targetCommand->toArray();
+			}
 		}
 	}
+
+	/**
+	 * @brief	get Lilac ServiceTemplate
+	 * @details	returns a Lilac ServiceTemplate, or a **list** of Commands
+	 * @param	$commandName the Lilac Command to search, or **false** to
+	 * 			list all Commands (defaults to false)
+	 * @return	a Command detail *or* a list of Commands
+	 */
+
 	/* LILAC - get Serice template */
 	public function getServiceTemplate($templateName){
 		$ncp = new NagiosServiceTemplatePeer;
@@ -4627,35 +4813,7 @@ class ObjectManager {
         return array("code"=>$code,"description"=>$logs);
 	}
 ########################################## OTHER
-	/* LILAC - Exporter */
-    private function exportConfigurationToNagios(&$error = "", &$success = "", $jobName = "nagios"){
-        $c = new Criteria();
-        //$c->add(ExportJobPeer::END_TIME, null);
-        $exportJobs = ExportJobPeer::doSelect($c);
-        
-        $nagiosJobId = NULL;
-        foreach($exportJobs as $job){
-            if( $job->getName() == $jobName ){
-                $nagiosJobId = $job->getId();
-                break;
-            }
-        }
 
-        if( $nagiosJobId != NULL ){
-            $exportJob = ExportJobPeer::retrieveByPK( $nagiosJobId );
-            $exportJob->setStatusCode(ExportJob::STATUS_STARTING);
-            $exportJob->setStartTime(time());
-            $exportJob->setStatus("Starting...");
-            $exportJob->save();
-            exec("php /srv/rgm/lilac/exporter/export.php " . $exportJob->getId() . " > /dev/null 2>&1", $tempOutput, $retVal);   
-            
-            $success .= $jobName." : Nagios configuration exported\n";
-        }
-        else{
-            $error .= "ERROR during nagios configuration export\n";
-        }
-            
-    }
 	/* LILAC - Export Nagios Configuration */
 	public function exportConfiguration($jobName = "nagios"){
         $error = "";
@@ -4667,18 +4825,7 @@ class ObjectManager {
         
         return $logs;
 	}
-	/* LIVESTATUS - checkHost */
-	private function checkHost($type, $address, $port, $path){
-		$host = false;
-		if($type == "unix"){
-			$socket_path_connexion = "unix://".$path;
-			$host = fsockopen($socket_path_connexion, $port, $errno, $errstr, 5);
-		}
-		else{
-			$host = fsockopen($address, $port, $errno, $errstr, 5);
-		}
-		return $host;
-	}
+
 	/* LIVESTATUS - List backends */
 	public function listNagiosBackends() {
 	
@@ -4690,6 +4837,23 @@ class ObjectManager {
 		return $backends_json;
 		
 	}
+
+	/**
+	 * @brief list LiveStatus Nagios objects 
+	 * @details LiveStatus is a the request interface of Checkmk, a Nagios plugin
+	 * 			that allows to get all the monitored host's and service's data,
+	 * 			including live data, using LiveStatus Query Language (LQL)
+	 * 			see https://checkmk.com/cms_livestatus.html
+	 * @param	$object the LV object to query (hosts, services, etc.)
+	 * @param	$backendid the LV backend id (as specified in rgmweb's $sockets
+	 * 			array definition)
+	 * 			defaults: null => all sockets will be processed
+	 * @param	$columns specify the columns to retrieve
+	 * 			default: false => all available columns are returned
+	 * @param	$filters specify a query filter to apply
+	 * 			default: false => no filter applied
+	 * @return	an array containing the query result
+	 */
 	/* LIVESTATUS - List nagios objects */
 	public function listNagiosObjects( $object, $backendid = NULL, $columns = FALSE, $filters = FALSE ) {
 		
@@ -4699,65 +4863,66 @@ class ObjectManager {
 		if($backendid != NULL) {
 			$sockets = array_slice($sockets,$backendid,1);
 		}
-		foreach($sockets as $socket){
-			$socket_parts = explode(":", $socket);
-			$socket_type = $socket_parts[0];
-			$socket_address = $socket_parts[1];
-			$socket_port = $socket_parts[2];
-			$socket_path = $socket_parts[3];
-			$socket_name = $socket;
-			
-			// check if socket disabled
-			if(isset($socket_parts[4]) && $backendid == NULL) {
-				continue;
-			}
-
-			
-			// check if socket is up
-			if( $this->checkHost($socket_type,$socket_address,$socket_port,$socket_path) ){
-				if($socket_port == -1){
-					$socket_port = "";
-					$socket_address = "";
-					$socket_name = "default";
-				}
-				$options = array(
-					'socketType' => $socket_type,
-					'socketAddress' => $socket_address,
-					'socketPort' => $socket_port,
-					'socketPath' => $socket_path
-				);
-
-				// construct mklivestatus request, and get the response
-				$client = new Client($options);
-				// get objects
-				$result[$socket_name] = $client->get($object);
-				// print_r($result);
+		if (sizeof($sockets, 0) > 0 ) {
+			foreach($sockets as $socket){
+				$socket_parts = explode(":", $socket);
+				$socket_type = $socket_parts[0];
+				$socket_address = $socket_parts[1];
+				$socket_port = $socket_parts[2];
+				$socket_path = $socket_parts[3];
+				$socket_name = $socket;
 				
-				// get columns
-				if($columns) {
-					$result[$socket_name] = $result[$socket_name]->columns($columns);
-				}		
-
-				// get filters
-				if($filters) {
-					foreach($filters as $filter) {
-						$result[$socket_name] = $result[$socket_name]->filter($filter);
+				// check if socket disabled
+				if(isset($socket_parts[4]) && $backendid == NULL) {
+					continue;
+				}			
+				// check if socket is up
+				if( $this->checkLiveStatusSocket($socket_type,$socket_address,$socket_port,$socket_path) ){
+					if($socket_port == -1){
+						$socket_port = "";
+						$socket_address = "";
+						$socket_name = "default";
 					}
+					$options = array(
+						'socketType' => $socket_type,
+						'socketAddress' => $socket_address,
+						'socketPort' => $socket_port,
+						'socketPath' => $socket_path
+					);
+					// construct mklivestatus request, and get the response
+					$client = new Client($options);
+					try {
+						// get objects
+						$result[$socket_name] = $client->get($object);
+						// get columns
+						if($columns) {
+							$result[$socket_name] = $result[$socket_name]->columns($columns);
+						}
+						// get filters
+						if($filters) {
+							foreach($filters as $filter) {
+								$result[$socket_name] = $result[$socket_name]->filter($filter);
+							}
+						}
+						// set user
+						$result[$socket_name] = $result[$socket_name]->authUser($this->authUser);
+						// execute
+						$result[$socket_name] = $result[$socket_name]->executeAssoc();
+					} catch (Exception $e) {
+						$result['error'] = $e->getMessage();
+						dump_var($e);
+					}
+				} else {
+					$result['error'] = 'Error: host down';
 				}
-
-				// set user
-				$result[$socket_name] = $result[$socket_name]->authUser($this->authUser);
-				
-				// execute
-				$result[$socket_name] = $result[$socket_name]->executeAssoc();
 			}
+		} else {
+			$result['error'] = 'Error: no LV socket';
 		}
-
 		// response for the Ajax call
-		// print_r($result);
 		return $result;
-
 	}
+
 	/* LIVESTATUS - List nagios states */
 	public function listNagiosStates( $backendid = NULL, $filters = FALSE ) {
 	
@@ -4793,7 +4958,7 @@ class ObjectManager {
 			}
 
 			// check if socket is up
-			if( $this->checkHost($socket_type,$socket_address,$socket_port,$socket_path) ){
+			if( $this->checkLiveStatusSocket($socket_type,$socket_address,$socket_port,$socket_path) ){
 				if($socket_port == -1){
 					$socket_port = "";
 					$socket_address = "";
@@ -4907,73 +5072,7 @@ class ObjectManager {
 
 	}
 	
-	/* LIVESTATUS - set nagios objects */
-/*	private function SetNagiosObjects( $object, $backendid = NULL, $columns = FALSE, $filters = FALSE ) {
-	
-		// loop on each socket
-		$sockets = getRGMConfig("sockets","array");
 
-		if($backendid != NULL) {
-			$sockets = array_slice($sockets,$backendid,1);
-		}
-		foreach($sockets as $socket){
-			$socket_parts = explode(":", $socket);
-			$socket_type = $socket_parts[0];
-			$socket_address = $socket_parts[1];
-			$socket_port = $socket_parts[2];
-			$socket_path = $socket_parts[3];
-			$socket_name = $socket;
-
-			// check if socket disabled
-			if(isset($socket_parts[4]) && $backendid == NULL) {
-				continue;
-			}
-
-			// check if socket is up
-			if( $this->checkHost($socket_type,$socket_address,$socket_port,$socket_path) ){
-				if($socket_port == -1){
-					$socket_port = "";
-					$socket_address = "";
-					$socket_name = "default";
-				}
-				$options = array(
-					'socketType' => $socket_type,
-					'socketAddress' => $socket_address,
-					'socketPort' => $socket_port,
-					'socketPath' => $socket_path
-				);
-
-				// construct mklivestatus request, and get the response
-				$client = new Client($options);
-
-				// get objects
-				$result[$socket_name] = $client->get($object);
-				
-				// get columns
-				if($columns) {
-					$result[$socket_name] = $result[$socket_name]->columns($columns);
-				}		
-
-				// get filters
-				if($filters) {
-					foreach($filters as $filter) {
-						$result[$socket_name] = $result[$socket_name]->filter($filter);
-					}
-				}
-
-				// set user
-				$result[$socket_name] = $result[$socket_name]->authUser($this->authUser);
-				
-				// execute
-				$result[$socket_name] = $result[$socket_name]->executeAssoc();
-			}
-		}
-
-		// response for the Ajax call
-		// print_r($result);
-		return $result;
-
-	}*/
 
 	/**
 	 * @brief	enumerates all defined "tags" used to classify one-liners items

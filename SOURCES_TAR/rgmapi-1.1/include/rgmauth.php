@@ -1,19 +1,19 @@
 <?php
-/*
-RGMAPI - authentication calls
-Copyright (c) 2019 SCC France - RGM Team
-Eric Belhomme <ebelhomme@fr.scc.com>
-
-LICENCE :
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-*/
+/**
+ * RGMAPI - authentication calls
+ * Copyright (c) 2019 SCC France - RGM Team
+ * Eric Belhomme <ebelhomme@fr.scc.com>
+ * 
+ * LICENCE :
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
 
 
 /**
@@ -38,7 +38,10 @@ function _genToken($username) {
 
 /**
  * @brief   Generates a one-time token
- * 
+ * @details When invoked, this function generates a new token and insert it into
+ *          the @b sessions table
+ * @param   none
+ * @return  nothing
  */
 function _genOneTimeToken() {
 
@@ -47,7 +50,14 @@ function _genOneTimeToken() {
         $tokeninfo['session'] . "', '3', '" . $tokeninfo['token'] . "', '". time() . "');", true);
 }
 
-function checkAuthTokenValidity($request, $token){
+/**
+ * @brief   check token validity
+ * @details check the validity of the token passed as argument. It return an array with token details
+ * @param   $request    a pointer to Slimm::request class with current context
+ * @param   $token      the token to check
+ * @return  $tokenInfo  an array with token details
+ */
+function checkAuthTokenValidity($request, $token) {
     global $database_rgmweb;
     global $rgmauth_ttl;
 
@@ -84,6 +94,9 @@ function checkAuthTokenValidity($request, $token){
     return $tokenInfo;
 }
 
+/**
+ * @brief   registers a user (provided username/password) and returns an auth token
+ */
 function getAuthToken() {
     global $database_rgmweb;
     $request = \Slim\Slim::getInstance()->request();
@@ -132,7 +145,10 @@ function getAuthToken() {
     }
 }
 
-function getTokenParameter($request) { 
+/**
+ * @brief   find token in Slim::request parameters (either in URI params and/or in HTTP headers)
+ */
+function getTokenParameter($request, $body) { 
     // Search for token parameter passed as variable or in http headers
     $token = '';
     if ($header = $request->headers->get('token')) {
@@ -141,10 +157,13 @@ function getTokenParameter($request) {
     if ( $var = $request->get('token')) {
         $token = $var;
     }
+    if (isset($body['token'])) {
+        $token = $body['token'];
+    }
     return $token;
 }
 
-function checkAuthToken($token){
+function checkAuthToken($token) {
     $request = \Slim\Slim::getInstance()->request();
     $response = \Slim\Slim::getInstance()->response();
     $token = getTokenParameter($request);
