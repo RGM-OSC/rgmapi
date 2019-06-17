@@ -533,12 +533,12 @@ class ObjectManager {
 	/**
 	 * @brief	Create a Lilac ContactName object
 	 * @param	$contactName a valid Lilac ContactName. Must be unique
-	 * @param	$contactAlias a string  that contains the contact desciption. Defaults to **"description"**
+	 * @param	$contactAlias a string  that contains the contact desciption. Defaults to  @b "description"
 	 * @param	$contactMail a string  that contains the contact email address. Can't be **null**
-	 * @param	$contactPager a string  that contains the contact *pager* number. Defaults to **""** (empty string)
-	 * @param	$contactGroup a valid Lilac ContactGroup object. Defaults to **""** (empty string)
-	 * @param	$serviceNotificationCommand a valid Lilac Command objet used as command for Nagios service notifier. Default to **"rgm_service_notifier"**
-	 * @param	$hostNotificationCommand a valid Lilac Command objet used as command for Nagios host notifier. Default to **"rgm_host_notifier"**
+	 * @param	$contactPager a string  that contains the contact *pager* number. Defaults to @b "" (empty string)
+	 * @param	$contactGroup a valid Lilac ContactGroup object. Defaults to @b "" (empty string)
+	 * @param	$serviceNotificationCommand a valid Lilac Command objet used as command for Nagios service notifier. Default to  @b "rgm_service_notifier"
+	 * @param	$hostNotificationCommand a valid Lilac Command objet used as command for Nagios host notifier. Default to  @b "rgm_host_notifier"
 	 * @param	$options a list array of optional flags. currently supported flags are:
 	 *			| flag |
 	 *			|------|
@@ -559,8 +559,8 @@ class ObjectManager {
 	 *			| retain_nonstatus_information  |
 	 *			| host_notifications_enabled  |
 	 *			| service_notifications_enabled  |
-	 * @param	$exportConfiguration = FALSE
-	 * @return	
+	 * @param	$exportConfiguration force the execution of Lilac exporter after Contact creation. Defaults to **FALSE**
+	 * @return	an array with the return status of the call
 	 */
 	public function createContact($contactName, $contactAlias="description", $contactMail,
 		$contactPager="", $contactGroup="", $serviceNotificationCommand="rgm_service_notifier",
@@ -676,13 +676,34 @@ class ObjectManager {
         return array("code"=>$code,"description"=>$logs);
 	}
 
-	/* LILAC - create host Downtime */
-    public function createHostDowntime($hostName,$comment,$startTime,$endTime,$user,$fixed=1,$duration=1000,$childHostAction=FALSE){
+	/**
+	 * @brief	Create a Nagios Downtime object on selected Lilac host
+	 * @param	$hostName a string containing Lilac HostName. Can't be **null**
+	 * @param	$comment a string that describes a comment for putting the host down. Can't be **null**
+	 * @param	$startTime a string that represents the starting date for the downtime. It must
+	 *			follow a date representation supported by the PHP DateTime class.
+	 *			see. https://www.php.net/manual/fr/class.datetime.php
+	 *			Can't be **null**
+	 * @param	$endTime a string that represents the ending date for the downtime. It must
+	 *			follow a date representation supported by the PHP DateTime class.
+	 *			see. https://www.php.net/manual/fr/class.datetime.php
+	 *			Can't be **null**
+	 * @param	$user Lilac ContactName responsible for this downtime. Defaults to RGMAPI session user
+	 * @param	$fixed defaults to **1**
+	 * @param	$duration defaults to **1000**
+	 * @param	$childHostAction defaults to **FALSE**
+	 */
+	public function createHostDowntime($hostName, $comment, $startTime, $endTime, $user='',
+			$fixed=1, $duration=1000, $childHostAction=FALSE)
+	{
 		$error = "";
 		$success = "";
-		$code=0;
-		try{
-			$CommandFile="/srv/rgm/nagios/var/log/rw/nagios.cmd";
+		$code = 0;
+		if (empty($user)) {
+			$user = $this->authUser;
+		}
+		try {
+			$CommandFile = "/srv/rgm/nagios/var/log/rw/nagios.cmd";
 			$date_start = new DateTime($startTime);
 			$start = $date_start->getTimestamp();	
 			$date_end = new DateTime($endTime);
@@ -690,53 +711,69 @@ class ObjectManager {
 			//$success .= $date_end->format('d-m-Y H:i:s');
 			$date = new DateTime();
 			$timestamp = $date->getTimestamp();
-			if(NagiosHostPeer::getByName($hostName)){
-				if(!$childHostAction){
+			if (NagiosHostPeer::getByName($hostName)) {
+				if (!$childHostAction) {
 					$cmdline = '['.$timestamp.'] SCHEDULE_HOST_DOWNTIME;'.$hostName.';'.$start.';'.$end.';'.$fixed.';0;'.$duration.';'.$user.';'.$comment.'\n'.PHP_EOL;
 					file_put_contents($CommandFile, $cmdline,FILE_APPEND);
-				}else{
+				} else {
 					$cmdline = '['.$timestamp.'] SCHEDULE_AND_PROPAGATE_HOST_DOWNTIME;'.$hostName.';'.$start.';'.$end.';'.$fixed.';0;'.$duration.';'.$user.';'.$comment.'\n'.PHP_EOL;
 					file_put_contents($CommandFile, $cmdline,FILE_APPEND);
 				}
-
 				$downtimesList = $this->getDowntimes();
 				$x=0;
 				$verify = False;
-				while($x < count($downtimesList) && !$verify){
-					if(strval($timestamp) == strval($downtimesList[$x]["entry_time"])){
+				while ($x < count($downtimesList) && !$verify) {
+					if (strval($timestamp) == strval($downtimesList[$x]["entry_time"])) {
 						$verify=True;
 						$success .= "Schedule host downtimes succesfully save. ref: $timestamp";
 					}
 					$x++;
 				}
-
-				if(!$verify){
+				if (!$verify) {
 					$code = 1;
 					$error.="An error occurred nothing happen.";
 				}
-			}else{
+			} else {
 				$code = 1;
 				$error.="$hostName didn't exist.";
 			}
-
-		}catch(Exception $e) {
+		} catch (Exception $e) {
 			$code=1;
 			$error .= $e->getMessage()."\n";
 		}
-        
 		$logs = $this->getLogs($error, $success);
-		
-		$result=array("code"=>$code,"description"=>$logs);
+		$result = array("code"=>$code, "description"=>$logs);
         return $result;
 	}
 
-	/* LILAC - create service Downtime */
-    public function createServiceDowntime($hostName,$serviceName,$comment,$startTime,$endTime,$user,$fixed=1,$duration=1000){
+	/**
+	 * @brief	Create a Nagios Downtime object on selected Lilac host
+	 * @param	$hostName a string containing Lilac HostName. Can't be **null**
+	 * @param	$serviceName a string containing Lilac ServiceName. Can't be **null**
+	 * @param	$comment a string that describes a comment for putting the host down. Can't be **null**
+	 * @param	$startTime a string that represents the starting date for the downtime. It must
+	 *			follow a date representation supported by the PHP DateTime class.
+	 *			see. https://www.php.net/manual/fr/class.datetime.php
+	 *			Can't be **null**
+	 * @param	$endTime a string that represents the ending date for the downtime. It must
+	 *			follow a date representation supported by the PHP DateTime class.
+	 *			see. https://www.php.net/manual/fr/class.datetime.php
+	 *			Can't be **null**
+	 * @param	$user Lilac ContactName responsible for this downtime. Defaults to RGMAPI session user
+	 * @param	$fixed defaults to **1**
+	 * @param	$duration defaults to **1000**
+	 */
+	public function createServiceDowntime($hostName, $serviceName, $comment, $startTime,
+		$endTime, $user='', $fixed=1, $duration=1000)
+	{
 		$error = "";
 		$success = "";
-		$code=0;
-		try{
-			$CommandFile="/srv/rgm/nagios/var/log/rw/nagios.cmd";
+		$code = 0;
+		if (empty($user)) {
+			$user = $this->authUser;
+		}
+		try {
+			$CommandFile = "/srv/rgm/nagios/var/log/rw/nagios.cmd";
 			$date_start = new DateTime($startTime);
 			$start = $date_start->getTimestamp();	
 			$date_end = new DateTime($endTime);
@@ -747,66 +784,71 @@ class ObjectManager {
 			
 			$nsp = new NagiosServicePeer();
 			$service = $nsp->getByHostAndDescription($hostName,$serviceName);
-			if(!$service){
+			if (!$service) {
 				$code = 1;
-				$error.="$hostName and/or $serviceName didn't exist.";
-			}else{
+				$error .= "$hostName and/or $serviceName didn't exist.";
+			} else {
 				$cmdline = '['.$timestamp.'] SCHEDULE_SVC_DOWNTIME;'.$hostName.';'.$serviceName.';'.$start.';'.$end.';'.$fixed.';0;'.$duration.';'.$user.';'.$comment.''.PHP_EOL;
 				file_put_contents($CommandFile, $cmdline,FILE_APPEND);
-				
 				$downtimesList = $this->getDowntimes();
 				$x=0;
 				$verify = False;
-				while($x < count($downtimesList) && !$verify){
-					if(strval($timestamp) == strval($downtimesList[$x]["entry_time"])){
+				while ($x < count($downtimesList) && !$verify) {
+					if (strval($timestamp) == strval($downtimesList[$x]["entry_time"])) {
 						$verify=True;
 						$success .= "Schedule host downtimes succesfully save. ref: $timestamp";
 					}
 					$x++;
 				}
-
-				if(!$verify){
+				if (!$verify) {
 					$code = 1;
 					$error.="An error occurred nothing happen.";
 				}
-
 			}
-
-		}catch(Exception $e) {
+		} catch (Exception $e) {
 			$code=1;
 			$error .= $e->getMessage()."\n";
 		}
-        
 		$logs = $this->getLogs($error, $success);
-		
-		$result=array("code"=>$code,"description"=>$logs);
+		$result=array("code"=>$code, "description"=>$logs);
         return $result;
 	}
 
-	/* LILAC - Create Host and Services */
-	public function createHost( $templateHostName="GENERIC_HOST", $hostName, $hostIp, $hostAlias = "", $contactName = NULL, $contactGroupName = NULL, $exportConfiguration = FALSE ){
+	/**
+	 * @brief	Create a Lilac Host object
+	 * @param	$templateHostName a string of a valid Lilac HostTemplate object. Default to @b "GENERIC_HOST"
+	 * @param	$hostName a string of a *unique* hostname. Can't be **null**.
+	 * @param	$hostIp a string of the IP address of the host. Can be a CIDR IP
+	 *			address (**x.x.x.x**) *or* a FQDN hostname (**host.domain**)
+	 * @param	$hostAlias a string containing a *alias* or a *description* of the host. Defaults to @b "" (empty string)
+	 * @param	$contactName an optional Lilac ContactName associated with this host. Defaults to **NULL**
+	 * @param	$contactGroupName = an optional Lilac ContactGroupName associated with this host. Defaults to **NULL**
+	 * @param	$exportConfiguration force the execution of Lilac exporter after Contact creation. Defaults to **FALSE**
+	 * @return	an array with the return status of the call
+	 */
+	public function createHost( $templateHostName="GENERIC_HOST", $hostName, $hostIp,
+		$hostAlias = "", $contactName = NULL, $contactGroupName = NULL,
+		$exportConfiguration = FALSE)
+	{
         $error = "";
         $success = "";
-		$code=0;
-		
+		$code = 0;
         $nhp = new NagiosHostPeer;
 		// Find host
 		$host = $nhp->getByName($hostName);
-		if($host) {
-			$code=1;
+		if ($host) {
+			$code = 1;
 			$error .= "Host $hostName already exists\n";
 		}
-
         $nhtp = new NagiosHostTemplatePeer;
 		// Find host template
 		$template_host = $nhtp->getByName($templateHostName);
-		if(!$template_host) {
-			$code=1;
+		if (!$template_host) {
+			$code = 1;
 			$error .= "Host Template $templateHostName not found\n";
 		}
-        
 		// Lauch actions if no errors
-		if(empty($error)) {	
+		if (empty($error)) {	
 			try {
 				// host
 				$tempHost = new NagiosHost();
@@ -824,109 +866,100 @@ class ObjectManager {
 				$newInheritance->save();
 				$success .= "Host Template ".$templateHostName." added to host ".$hostName."\n";
                 
-                if( $contactName != NULL){
+                if ( $contactName != NULL) {
 					//Add a contact to a host
                     $code = $this->addContactToHost( $tempHost->getName(), $contactName )["code"];  
                 }
-                
-                if( $contactGroupName != NULL && $code==0){
+                if ( $contactGroupName != NULL && $code==0) {
                     //Add a contact group to a host
                     $code = $this->addContactGroupToHost( $tempHost->getName(), $contactGroupName )["code"];    
                 }
-                                
 				// Export
-                if( $exportConfiguration == TRUE )
-				    $this->exportConfigurationToNagios($error, $success);
+				if ($exportConfiguration == TRUE)
+					$this->exportConfigurationToNagios($error, $success);
 			}
-			catch(Exception $e) {
-				$code=1;
+			catch (Exception $e) {
+				$code = 1;
 				$error .= $e->getMessage()."\n";
 			}
 		}
-        
-        
         $logs = $this->getLogs($error, $success);
-        
-        return array("code"=>$code,"description"=>$logs);        
+        return array("code"=>$code, "description"=>$logs);        
 	}
+
+	/**
+	 * @brief	Create a Lilac HostTemplate object
+	 * @param	$templateHostName a string of a *unique* HostTemplate name. Can't be **null**.
+	 * @param	$templateHostDescription a string for a HostTemplate description. Defaults to @ "" (empty string)
+	 * @param	$createHostgroup defaults to TRUE
+	 * @param	$exportConfiguration force the execution of Lilac exporter after Contact creation. Defaults to **FALSE**
+	 * @todo why the hell create a hostgroup with the name of the host template ??? should be smarter to specify a hostgroup name (and createit if it doesn't exists...)
+	 */
 	/* LILAC - Create Host Template */
-    public function createHostTemplate($templateHostName ,$templateHostDescription="", $createHostgroup = TRUE, $exportConfiguration = FALSE ){
+	public function createHostTemplate($templateHostName, $templateHostDescription="",
+		$createHostgroup = TRUE, $exportConfiguration = FALSE)
+	{
         global $lilac;
         $error = "";
 		$success = "";
-		$code =0;
-        
+		$code = 0;
         
         // Check for pre-existing host template with same name        
         $nhtp = new NagiosHostTemplatePeer;
 		$template_host = $nhtp->getByName($templateHostName);
-		if($template_host) {
-			$code=1;
+		if ($template_host) {
+			$code = 1;
 			$error .= "A host template with that name already exists!\n";
 		}
-           
-        if( $templateHostName == NULL || $templateHostName == "" ){
-			$code=1;
+		if ($templateHostName == NULL || $templateHostName == "") {
+			$code = 1;
             $error .= "A host template name must be defined\n";   
-        }
-           
-           
-        if( empty($error) ) {			
-            /*---Create template---*/
-            $template = new NagiosHostTemplate();
+		}
+		if (empty($error)) {			
+			// Create template
+			$template = new NagiosHostTemplate();
             $template->setName( $templateHostName );
             $template->setDescription( $templateHostDescription );
             $template->save();
-            
             $success .= "Host template ".$templateHostName." created\n";
-                        
-            /*---Add host template inheritance ("GENERIC_HOST")---*/
-            $targetTemplate = $nhtp->getByName("GENERIC_HOST");
-            if(!$targetTemplate) {
-				$code=1;
+			// Add host template inheritance ("GENERIC_HOST")
+			$targetTemplate = $nhtp->getByName("GENERIC_HOST");
+            if (!$targetTemplate) {
+				$code = 1;
                 $error .= "The target template 'GENERIC_HOST' does not exit\n";
-            }
-            else{
+            } else {
                 $newInheritance = new NagiosHostTemplateInheritance();
                 $newInheritance->setNagiosHostTemplateRelatedBySourceTemplate($template);
                 $newInheritance->setNagiosHostTemplateRelatedByTargetTemplate($targetTemplate);
                 try {
                     $newInheritance->save();
                     $success .= "Template 'GENERIC_HOST' added to inheritance chain\n";				
-                }
-                catch(Exception $e) {
-					$code=1;
+                } catch(Exception $e) {
+					$code = 1;
                     $error .= $e->getMessage();
-                }   
-            }
-			
-			if($createHostgroup && empty($error)){
-				/*---Create Host Group with Host Template name if not exists---*/
-				if($lilac->hostgroup_exists( $templateHostName )) {
-					$nhgp = new NagiosHostgroupPeer;
-					$hostGroup = $nhgp->getByName( $templateHostName );
 				}
-				else{
-					$hostGroup = $this->createHostGroup( $templateHostName, $error, $success );   
+			}
+			if ($createHostgroup && empty($error)) {
+				// Create Host Group with Host Template name if not exists
+				if ($lilac->hostgroup_exists($templateHostName)) {
+					$nhgp = new NagiosHostgroupPeer;
+					$hostGroup = $nhgp->getByName($templateHostName);
+				} else {
+					$hostGroup = $this->createHostGroup($templateHostName, $error, $success);   
 					// $hostGroup = $nhgp->getByName( $templateHostName );
 				}
-				
-				/*---Add Group Membership to Host template---*/
-				if( $hostGroup != NULL ){
+				// Add Group Membership to Host template
+				if ($hostGroup != NULL) {
 					$template->addHostgroupByName($templateHostName);
 					$success .= "Host group membership added to ".$templateHostName."\n";
 				}
 			}
-
         }
-        
         // Export
-        if( $exportConfiguration == TRUE )
+        if ($exportConfiguration == TRUE)
             $this->exportConfigurationToNagios($error, $success);
-                
         $logs = $this->getLogs($error, $success);
-        
-        return array("code"=>$code,"description"=>$logs);
+        return array("code"=>$code, "description"=>$logs);
     }
 
     /* LILAC - Create Host Group */
