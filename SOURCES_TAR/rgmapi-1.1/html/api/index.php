@@ -235,6 +235,8 @@ function addRoute($httpMethod, $routeName, $methodName, $acl) {
         }
         // ensure passed parameters are required by routed function
         foreach ($request->get() as $key => $value) {
+            if ($key == 'token')
+                continue;
             if (in_array( $key, $params[0]) == false) {
                 if ($msg != '') $msg .= ', ';
                 $msg .= 'unknown parameter: ' . $key;
