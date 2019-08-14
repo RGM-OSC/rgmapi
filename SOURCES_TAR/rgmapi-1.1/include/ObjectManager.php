@@ -960,106 +960,123 @@ class ObjectManager {
             $this->exportConfigurationToNagios($error, $success);
         $logs = $this->getLogs($error, $success);
         return array("code"=>$code, "description"=>$logs);
-    }
+	}
 
-    /* LILAC - Create Host Group */
-    public function createHostGroup( $hostGroupName, $description="host group", $exportConfiguration = FALSE ){
+	/**
+	 * @brief	Create a Lilac HostGroup object
+	 * @param	$hostGroupName a string of a *unique* HostGroup name. Can't be **null**.
+	 * @param	$description a string description for HostGroup. Defaults to @b "host group"
+	 * @param	$exportConfiguration force the execution of Lilac exporter after Contact creation. Defaults to **FALSE**
+	 */
+    public function createHostGroup($hostGroupName, $description="host group", $exportConfiguration=FALSE) {
         global $lilac;
         $error = "";
 		$success = "";
-		$code =0;
+		$code = 0;
         $hostGroup = NULL;
         
         // Check for pre-existing contact with same name
-		if($lilac->hostgroup_exists( $hostGroupName )) {
+		if ($lilac->hostgroup_exists($hostGroupName)) {
 			$code = 1;
 			$error .= "A host group with that name already exists!\n";
-		}
-		else {
+		} else {
 			// Field Error Checking
-			if( $hostGroupName == "" ) {
+			if ($hostGroupName == "") {
 				$error .= "Host group name is required\n";
-			}
-			else {
+			} else {
 				// All is well for error checking, add the hostgroup into the db.
 				$hostGroup = new NagiosHostgroup();
-				$hostGroup->setAlias( $description );
-				$hostGroup->setName( $hostGroupName );	
+				$hostGroup->setAlias($description);
+				$hostGroup->setName($hostGroupName);	
 				$hostGroup->save();				
 				
 				$success .= "Host group ".$hostGroupName." created\n";
-				if( $exportConfiguration == TRUE )
+				if ($exportConfiguration == TRUE)
 					$this->exportConfigurationToNagios($error, $success);
 			}
 		}
-        
-        
-        $logs = $this->getLogs($error, $success);
-        
-        return array("code"=>$code,"description"=>$logs);
+		$logs = $this->getLogs($error, $success);
+		return array("code"=>$code, "description"=>$logs);
 	}  
-	/* LILAC - create service template */
-	public function createServiceTemplate($templateServiceName, $templateDescription="",$exportConfiguration = FALSE){
+
+	/**
+	 * @brief	Create a Lilac ServiceTemplate object
+	 * @param	$templateServiceName a string of a *unique* ServiceTemplate name. Can't be **null**.
+	 * @param	$templateDescription a string description for ServiceTemplate. Defaults to @b "" (empty string)
+	 * @param	$exportConfiguration force the execution of Lilac exporter after Contact creation. Defaults to **FALSE**
+	 */
+	public function createServiceTemplate($templateServiceName, $templateDescription="", $exportConfiguration=FALSE) {
 		$error = "";
 		$success = "";
-		$code=0;
+		$code = 0;
 		
-		if(NagiosServiceTemplatePeer::getByName($templateServiceName)){
-			$code=1;
+		if (NagiosServiceTemplatePeer::getByName($templateServiceName)) {
+			$code = 1;
 			$error .= "The Service template '".$templateServiceName."' already exist.\n";
-		}else{
+		} else {
 			$nst=new NagiosServiceTemplate;
 			$nst->setName($templateServiceName);
 			$nst->setDescription($templateDescription);
 			$nst->save();
 			$success .= "The Service template $templateServiceName had been created.\n";
 			// Export
-			if( $exportConfiguration == TRUE )
+			if ($exportConfiguration == TRUE)
 				$this->exportConfigurationToNagios($error, $success);
 		}
 		$logs = $this->getLogs($error, $success);
-        
-		return array("code"=>$code,"description"=>$logs);
+		return array("code"=>$code, "description"=>$logs);
 	}
-	/* LILAC - create Command */
-    public function createCommand($commandName,$commandLine,$commandDescription=""){
+
+	/**
+	 * @brief	Create a Lilac Command object
+	 * @param	$commandName a string of a *unique* ServiceTemplate name. Can't be **null**.
+	 * @param	$commandLine a string description for ServiceTemplate. Defaults to @b "" (empty string)
+	 * @param	$commandDescription
+	 */
+    public function createCommand($commandName, $commandLine, $commandDescription="") {
 		$error = "";
 		$success = "";
-		$code=0;
-		try{
+		$code = 0;
+		$result = array();
+		try {
 			$ncp = new NagiosCommandPeer;
 			$targetCommand = $ncp->getByName($commandName);
 			
 			//If command doesn't exist we create it
-			if(!$targetCommand) {
+			if (!$targetCommand) {
 				$command = new NagiosCommand;
 				$command->setName($commandName);
-				$command->setLine($commandLine);
+				$command->setLine($commandLine); 
 				$command->setDescription($commandDescription);
 				$result=$command->save();
-				if(!$result){
-					$code=1;
+				if (!$result) {
+					$code = 1;
 					$error .= "The command '".$command->getName()."' can't be created\n";
-				}
-				else{
+				} else {
 					$success .= "The command '".$command->getName()."' has been created.\n";
 				}
 			}
 			//if command already exist we modify it
-			else{
-				$code=1;
+			else {
+				$code = 1;
 				$error .= "The command '".$targetCommand->getName()."' already exist, if you want to modify it see the function 'modifyCommand'.\n";
 			}
-		}catch(Exception $e) {
-			$code=1;
+		} catch (Exception $e) {
+			$code = 1;
 			$error .= $e->getMessage()."\n";
 		}
-        
+
 		$logs = $this->getLogs($error, $success);
-		
-		$result=array("code"=>$code,"description"=>$logs);
+		$result=array("code"=>$code, "description"=>$logs);
         return $result;
 	}
+
+	/**
+	 * @brief	Create a Lilac Contact (user) object
+	 * @param	$commandName a string of a *unique* ServiceTemplate name. Can't be **null**.
+	 * @param	$commandLine a string description for ServiceTemplate. Defaults to @b "" (empty string)
+	 * @param	$commandDescription
+	 */
     /* RGMWEB - Create User */
     public function createUser($userName, $userMail, $admin = false, $filterName = "", $filterValue = "", $exportConfiguration = FALSE){
         //Lower case
@@ -1074,17 +1091,13 @@ class ObjectManager {
         $userPassword2 = $userName;
         $message = false;
         
-        //Admin
-        if( $admin == true ){
+        if ($admin == true) {
             //admins group
             $userGroup = 1;
-            
             $userDescr = "admin user";
+        } else {
+			$userDescr = "limited user";
         }
-        else{
-            $userDescr = "limited user";
-        }
-        
         $createdUserLimitation = !($admin);
         // RGMWEB - User creation 
         $user = insert_user($userName, $userDescr, $userGroup, $userPassword1, $userPassword2, $userType, "", $userMail, $createdUserLimitation, $message);

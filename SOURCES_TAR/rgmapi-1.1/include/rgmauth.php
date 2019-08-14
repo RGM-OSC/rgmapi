@@ -178,6 +178,6 @@ function checkAuthToken($token) {
 
 function clearOneTimeToken($token) {
     global $database_rgmweb;
-    sqlrequest( $database_rgmweb, "DELETE FROM sessions WHERE session_type = 3 AND session_token = '" . $token . "';", false);
+    sqlrequest( $database_rgmweb, "DELETE FROM sessions WHERE session_type = 3 AND session_token = '$token';", false);
 }
 ?>
