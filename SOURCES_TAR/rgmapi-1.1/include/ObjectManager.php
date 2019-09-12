@@ -714,9 +714,11 @@ class ObjectManager {
 			if (NagiosHostPeer::getByName($hostName)) {
 				if (!$childHostAction) {
 					$cmdline = '['.$timestamp.'] SCHEDULE_HOST_DOWNTIME;'.$hostName.';'.$start.';'.$end.';'.$fixed.';0;'.$duration.';'.$user.';'.$comment.'\n'.PHP_EOL;
+					print "no child - cmd: $cmdline";
 					file_put_contents($CommandFile, $cmdline,FILE_APPEND);
 				} else {
 					$cmdline = '['.$timestamp.'] SCHEDULE_AND_PROPAGATE_HOST_DOWNTIME;'.$hostName.';'.$start.';'.$end.';'.$fixed.';0;'.$duration.';'.$user.';'.$comment.'\n'.PHP_EOL;
+					print "with child - cmd: $cmdline";
 					file_put_contents($CommandFile, $cmdline,FILE_APPEND);
 				}
 				$downtimesList = $this->getDowntimes();
@@ -3082,11 +3084,25 @@ class ObjectManager {
         $result=array("code"=>$code,"description"=>$logs,"changes"=>$changed);
         return $result;
 	}
-	/* LILAC - modify nagiosResources */
-	public function modifyNagiosResources($resources){
+	/**
+	 * @brief	Modify one or many Nagios Resources
+	 * @details	Nagios resources are $USER$ Nagios macros. RGM use these to store customer's constants.
+	 * @param	$resources a JSON structure that reflects the resources to modify in the form of:
+	 * 
+	 *     {
+	 *         "resources": {
+	 *             "User1": "value1",
+	 *             "User12": "value12"
+	 *         }
+	 *     }
+	 * 
+	 * @return	an array with the return status of the call
+	 */
+	public function modifyNagiosResources($resources) {
 		$error = "";
 		$success = "";
 		$code=0;
+		print_r($resources);
 		try{
 			$resourceCfg = NagiosResourcePeer::doSelectOne(new Criteria());
 			if(!$resourceCfg) {
@@ -3095,7 +3111,7 @@ class ObjectManager {
 			}
 			
 			foreach($resources as $key => $value){
-				$resourceCfg->setByName($key,$value);
+				$resourceCfg->setByName(ucfirst(strtolower($key)), $value);
 			}
 			$row=$resourceCfg->save();
 			
@@ -3109,7 +3125,7 @@ class ObjectManager {
 
 		$logs = $this->getLogs($error, $success);
 
-		return array("code"=>$code,"description"=>$logs);
+		return array("code"=>$code,"description"=>$logs, "resources"=>$resources);
 	}
 
 	/* LILAC - Modify Host */

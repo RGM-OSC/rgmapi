@@ -18,6 +18,10 @@ All calls to the RGM HTTP API are performed by HTTP GET/POST requests. The URLs 
 Some calls to the API are requiring a valid **token**. The token can be passed either as a _URI parameter_ *or* as a _HTTP header_. In both case the parameter name is ```token```. 
 You need to provide a valid token for authenticated requests. A token have a limited TTL (Time To Live) period (by default 3600 seconds) and will be purged after its expiration.
 
+## Complete API documentation
+
+The RGMAPI is fully documented using Doxygen. The Doxygen documentation should be available into the ```api``` sub-folder. Example: ```https://localhost/rgmapi/doc```
+
 ## RGM Authentication token
 
 ### Normal username derivated token
@@ -291,15 +295,6 @@ Slim Framework source sode https://www.slimframework.com/.
 
 **Dependenties:**
 `PHP >= 5.3.0`
-
-**Compatibility matrix:**
-
-| Version | Comments |
-| --- | --- |
-| `PHP 5.3` | Tested |
-| `PHP 5.4` | Tested |
-| `PHP 5.5` | Tested |
-| `PHP > 5.5` | Not tested |
 
 ## License
 * RGM is licensed under the GNU General Public License.
