@@ -28,13 +28,8 @@ RGM includes a web-based "RESTful" API (Application Programming Interface) calle
 install -d -m0755 %{buildroot}%{datadir}
 install -d -m0755 %{buildroot}%{_sysconfdir}/httpd/conf.d
 cp -afv ./* %{buildroot}%{datadir}
-<<<<<<< HEAD
 cd %{buildroot}%{datadir}
 doxygen %{buildroot}%{datadir}/Doxyfile
-=======
-cd %{datadir}
-doxygen %{datadir}/Doxyfile
->>>>>>> 80c778705c47caf4474643303dd60f2a82797e96
 install -m 640 %{SOURCE1} %{buildroot}%{_sysconfdir}/httpd/conf.d/
 rm -rf %{buildroot}%{datadir}/%{name}.spec
 
@@ -66,7 +61,7 @@ rm -rf %{buildroot}
 - Add CI.
 - Prepare full fork.
 
-* Mon Nov 28 2018 Michael Aubertin <michael.aubertin@gmail.com> - 1.0-4
+* Wed Nov 28 2018 Michael Aubertin <michael.aubertin@gmail.com> - 1.0-4
 - Initialize RGM fork from EON
 
 * Thu Jun 14 2018 Jean-Philippe Levy <jeanphilippe.levy@gmail.com> - 1.0-3
