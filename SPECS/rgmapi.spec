@@ -1,7 +1,7 @@
 Summary:        API for the RGM suite.
 Name:           rgmapi
 Version:        1.1
-Release:        4.rgm
+Release:        5.rgm
 Source0:        %{name}-%{version}.tar.gz
 Source1:        rgmapi.conf
 Group:          Applications/System
@@ -28,6 +28,8 @@ RGM includes a web-based "RESTful" API (Application Programming Interface) calle
 install -d -m0755 %{buildroot}%{datadir}
 install -d -m0755 %{buildroot}%{_sysconfdir}/httpd/conf.d
 cp -afv ./* %{buildroot}%{datadir}
+cd %{datadir}
+doxygen %{datadir}/Doxyfile
 install -m 640 %{SOURCE1} %{buildroot}%{_sysconfdir}/httpd/conf.d/
 rm -rf %{buildroot}%{datadir}/%{name}.spec
 
@@ -44,6 +46,10 @@ rm -rf %{buildroot}
 %{_sysconfdir}/httpd/conf.d/rgmapi.conf
 
 %changelog
+* Thu Sep 12 2019 Eric Belhomme <ebelhomme@fr.scc.com> - 1.1-5.rgm
+- update Nagios resources routes
+- add doxygen API documentation into package
+
 * Thu Apr 25 2019 Michael Aubertin <maubertin@fr.scc.com> - 1.1-4.rgm
 - Add functions
 
