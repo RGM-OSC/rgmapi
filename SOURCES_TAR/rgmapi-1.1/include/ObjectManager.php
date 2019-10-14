@@ -713,11 +713,11 @@ class ObjectManager {
 			$timestamp = $date->getTimestamp();
 			if (NagiosHostPeer::getByName($hostName)) {
 				if (!$childHostAction) {
-					$cmdline = '['.$timestamp.'] SCHEDULE_HOST_DOWNTIME;'.$hostName.';'.$start.';'.$end.';'.$fixed.';0;'.$duration.';'.$user.';'.$comment.'\n'.PHP_EOL;
+					$cmdline = '['.$timestamp.'] SCHEDULE_HOST_DOWNTIME;'.$hostName.';'.$start.';'.$end.';'.$fixed.';0;'.$duration.';'.$user.';'.$comment.PHP_EOL;
 					print "no child - cmd: $cmdline";
 					file_put_contents($CommandFile, $cmdline,FILE_APPEND);
 				} else {
-					$cmdline = '['.$timestamp.'] SCHEDULE_AND_PROPAGATE_HOST_DOWNTIME;'.$hostName.';'.$start.';'.$end.';'.$fixed.';0;'.$duration.';'.$user.';'.$comment.'\n'.PHP_EOL;
+					$cmdline = '['.$timestamp.'] SCHEDULE_AND_PROPAGATE_HOST_DOWNTIME;'.$hostName.';'.$start.';'.$end.';'.$fixed.';0;'.$duration.';'.$user.';'.$comment.PHP_EOL;
 					print "with child - cmd: $cmdline";
 					file_put_contents($CommandFile, $cmdline,FILE_APPEND);
 				}
