@@ -775,30 +775,40 @@ class ObjectManager {
 			$user = $this->authUser;
 		}
 		try {
+			$service = '';
 			$CommandFile = "/srv/rgm/nagios/var/log/rw/nagios.cmd";
 			$date_start = new DateTime($startTime);
 			$start = $date_start->getTimestamp();	
 			$date_end = new DateTime($endTime);
-			$end = 	$date_end->getTimestamp();
-			//$success .= $date_end->format('d-m-Y H:i:s');
+			$end =	$date_end->getTimestamp();
 			$date = new DateTime();
 			$timestamp = $date->getTimestamp();
-			
-			$nsp = new NagiosServicePeer();
-			$service = $nsp->getByHostAndDescription($hostName,$serviceName);
+			$arrSvcCol = array('description','host_name');
+			$arrSvcFilter = array("host_name = $hostName","description = $serviceName");
+			$jsonServices = $this->listNagiosObjects('services',0,$arrSvcCol,$arrSvcFilter);
+			foreach($jsonServices['default'] as $svcJsonData) {
+				$service	= $svcJsonData['description'];
+			}
 			if (!$service) {
 				$code = 1;
 				$error .= "$hostName and/or $serviceName didn't exist.";
 			} else {
 				$cmdline = '['.$timestamp.'] SCHEDULE_SVC_DOWNTIME;'.$hostName.';'.$serviceName.';'.$start.';'.$end.';'.$fixed.';0;'.$duration.';'.$user.';'.$comment.''.PHP_EOL;
 				file_put_contents($CommandFile, $cmdline,FILE_APPEND);
-				$downtimesList = $this->getDowntimes();
 				$x=0;
+				$y=0;
+				$downtimesList = $this->getDowntimes();
+				// Wait downtime creation return 2.5 seconds max
+				while (count($downtimesList) < 1 && $y < 5) {
+					$downtimesList = $this->getDowntimes();
+					$y++;
+					usleep(500000); // Wait 0.5 seconds to loop
+				}
 				$verify = False;
 				while ($x < count($downtimesList) && !$verify) {
-					if (strval($timestamp) == strval($downtimesList[$x]["entry_time"])) {
+					if (strval($timestamp) >= strval($downtimesList[$x]["entry_time"]) && strval($timestamp) <= (strval($downtimesList[$x]["entry_time"]) + 3)) {
 						$verify=True;
-						$success .= "Schedule host downtimes succesfully save. ref: $timestamp";
+						$success .= "Schedule service downtimes succesfully save. ref: $timestamp";
 					}
 					$x++;
 				}

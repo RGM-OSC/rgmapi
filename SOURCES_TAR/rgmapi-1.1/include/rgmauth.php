@@ -160,7 +160,6 @@ function getTokenParameter($request, $body) {
     if (isset($body['token'])) {
         $token = $body['token'];
     }
-		print "token: $token \n";
     return $token;
 }
 
