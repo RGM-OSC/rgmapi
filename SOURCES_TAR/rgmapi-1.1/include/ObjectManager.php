@@ -1948,8 +1948,8 @@ class ObjectManager {
 
 		$nstp = new NagiosServiceTemplatePeer;
 		//Test if the parent templates are given and set exist
-		if(isset($service->inheritance)) {
-			$templateName = $service->inheritance;
+		if(isset($service['inheritance'])) {
+			$templateName = $service['inheritance'];
 			$template = $nstp->getByName($templateName);
 			if(!$template) {
 				$code=1;
@@ -1961,35 +1961,35 @@ class ObjectManager {
 			try {
 				// service interface
 				$tempService = new NagiosService();
-				$tempService->setDescription($service->name);
+				$tempService->setDescription($service['name']);
 				$tempService->setHost($host->getId());
 				$tempService->save();
-				$success .= "Service $service->name added\n";
+				$success .= "Service $service[name] added\n";
 				if(isset($template)) {
 					$newInheritance = new NagiosServiceTemplateInheritance();
 					$newInheritance->setNagiosService($tempService);
 					$newInheritance->setNagiosServiceTemplateRelatedByTargetTemplate($template);
 					$newInheritance->save();
-					$success .= "Service Template ".$service->inheritance." added to service $service->name \n";
+					$success .= "Service Template ".$service['inheritance']." added to service $service[name] \n";
 				}
 				
-				if(isset($service->command)){
-					$cmd = NagiosCommandPeer::getByName($service->command);
+				if(isset($service['command'])){
+					$cmd = NagiosCommandPeer::getByName($service['command']);
 					if($cmd){
 						$tempService->setCheckCommand($cmd->getId());
 						$tempService->save();
-						$success .= "The command '".$service->command."' add to service $service->name \n";
+						$success .= "The command '".$service['command']."' add to service $service[name] \n";
 					}else{
 						$code=1;
-						$error .= "The command '".$service->command."' doesn't exist.\n";
+						$error .= "The command '".$service['command']."' doesn't exist.\n";
 					}
-					if(isset($service->parameters)){
-						foreach($service->parameters as $params) {
+					if(isset($service['parameters'])){
+						foreach($service['parameters'] as $params) {
 							$param = new NagiosServiceCheckCommandParameter();
 							$param->setService($tempService->getId());
 							$param->setParameter($params);
 							$param->save();
-							$success .= "Command Parameter ".$params." added to $service->name\n";
+							$success .= "Command Parameter ".$params." added to $service[name]\n";
 						}
 					}
 					
