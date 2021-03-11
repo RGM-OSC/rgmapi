@@ -26,11 +26,11 @@ RGM includes a web-based "RESTful" API (Application Programming Interface) calle
 
 %install
 install -d -m0755 %{buildroot}%{datadir}
+install -d -m0755 %{buildroot}%{rgm_docdir}/httpd
+install -T -D -m 0644 httpd-rgmapi.example.conf %{buildroot}%{rgm_docdir}/httpd/httpd-rgmapi.example.conf
 cp -afv ./* %{buildroot}%{datadir}
 cd %{buildroot}%{datadir}
 doxygen %{buildroot}%{datadir}/Doxyfile
-install -d -m0755 %{buildroot}%{rgm_docdir}/httpd
-install -T -D -m 0644 %{name}-rgm/rgmapi.conf %{buildroot}%{rgm_docdir}/httpd/httpd-rgmapi.example.conf
 rm -rf %{buildroot}%{datadir}/%{name}.spec
 
 
