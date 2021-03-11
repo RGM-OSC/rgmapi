@@ -1,7 +1,7 @@
 Summary:        API for the RGM suite.
 Name:           rgmapi
 Version:        1.1
-Release:        5.rgm
+Release:        6.rgm
 Source0:        %{name}-%{version}.tar.gz
 Source1:        rgmapi.conf
 Group:          Applications/System
@@ -26,26 +26,33 @@ RGM includes a web-based "RESTful" API (Application Programming Interface) calle
 
 %install
 install -d -m0755 %{buildroot}%{datadir}
-install -d -m0755 %{buildroot}%{_sysconfdir}/httpd/conf.d
 cp -afv ./* %{buildroot}%{datadir}
 cd %{buildroot}%{datadir}
 doxygen %{buildroot}%{datadir}/Doxyfile
-install -m 640 %{SOURCE1} %{buildroot}%{_sysconfdir}/httpd/conf.d/
+install -T -D -m 0644 %{name}-rgm/rgmapi.conf %{buildroot}%{rgm_docdir}/httpd/httpd-rgmapi.example.conf
 rm -rf %{buildroot}%{datadir}/%{name}.spec
 
+
 %post
+if [ -e %{_sysconfdir}/httpd/conf.d/%{name}.conf ]; then
+    rm -f %{_sysconfdir}/httpd/conf.d/%{name}.conf
+fi
 systemctl restart httpd
+
 
 %clean
 rm -rf %{buildroot}
 
 %files
+%doc %{rgm_docdir}/httpd/httpd-rgmapi.example.conf
 %defattr(0644,root,%{rgm_group},0755)
 %{rgm_path}
-%defattr(0644,root,root)
-%{_sysconfdir}/httpd/conf.d/rgmapi.conf
+
 
 %changelog
+* Thu Mar 11 2021 Eric Belhomme <ebelhomme@fr.scc.com> - 1.1.6.rgm
+- move httpd config file as example file in /usr/share/doc/rgm/httpd/
+
 * Thu Sep 12 2019 Eric Belhomme <ebelhomme@fr.scc.com> - 1.1-5.rgm
 - update Nagios resources routes
 - add doxygen API documentation into package
