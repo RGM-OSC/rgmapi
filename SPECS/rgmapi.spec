@@ -1,9 +1,9 @@
 Summary:        API for the RGM suite.
 Name:           rgmapi
-Version:        1.1
-Release:        6.rgm
-Source0:        %{name}-%{version}.tar.gz
-Source1:        rgmapi.conf
+Version:        1.2
+Release:        0.rgm
+Source0:        %{name}.tar.gz
+Source1:        httpd-rgmapi.example.conf
 Group:          Applications/System
 License:        GPL
 Vendor:         RGM Community
@@ -20,16 +20,17 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-root
 RGM includes a web-based "RESTful" API (Application Programming Interface) called RGMAPI that enables external programs to access information from the monitoring database and to manipulate objects inside the databases of RGM suite.
 
 %prep
-%setup -q -n %{name}-%{version}
+%setup -q -n %{name}
 
 %build
 
 %install
 install -d -m0755 %{buildroot}%{datadir}
+install -d -m0755 %{buildroot}%{rgm_docdir}/httpd
+install -T -D -m 0644 %{SOURCE1} %{buildroot}%{rgm_docdir}/httpd/httpd-rgmapi.example.conf
 cp -afv ./* %{buildroot}%{datadir}
 cd %{buildroot}%{datadir}
 doxygen %{buildroot}%{datadir}/Doxyfile
-install -T -D -m 0644 %{name}-rgm/rgmapi.conf %{buildroot}%{rgm_docdir}/httpd/httpd-rgmapi.example.conf
 rm -rf %{buildroot}%{datadir}/%{name}.spec
 
 
@@ -50,7 +51,11 @@ rm -rf %{buildroot}
 
 
 %changelog
-* Thu Mar 11 2021 Eric Belhomme <ebelhomme@fr.scc.com> - 1.1.6.rgm
+* Tue Mar 16 2021 Eric Belhomme <ebelhomme@fr.scc.com> - 1.2-0.rgm
+- bind SQL requests
+- align session management with rgmweb
+
+* Thu Mar 11 2021 Eric Belhomme <ebelhomme@fr.scc.com> - 1.1-6.rgm
 - move httpd config file as example file in /usr/share/doc/rgm/httpd/
 
 * Thu Sep 12 2019 Eric Belhomme <ebelhomme@fr.scc.com> - 1.1-5.rgm

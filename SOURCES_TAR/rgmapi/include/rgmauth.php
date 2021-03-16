@@ -27,8 +27,9 @@
 function _genToken($username) {
     // gen token randomly
     $ret = array();
+    global $rgm_session;
     // share session mgmt with rgmweb
-    $ret['session'] = genSessionId();
+    $ret['session'] = $rgm_session->generate_session_id();
     $salt = mcrypt_create_iv(22, MCRYPT_DEV_URANDOM);
     $salt = base64_encode($salt);
     $salt = str_replace('+', '.', $salt);
@@ -46,8 +47,12 @@ function _genToken($username) {
 function _genOneTimeToken() {
 
     $tokeninfo = _genToken('one-time-token');
-    $newsession = sqlrequest( $database_rgmweb, "INSERT INTO `sessions` (session_id, session_type, session_token, creation_epoch) VALUES ('" .
-        $tokeninfo['session'] . "', '3', '" . $tokeninfo['token'] . "', '". time() . "');", true);
+    $newsession = sqlrequest(
+        $database_rgmweb,
+        "INSERT INTO `sessions` (session_id, session_type, session_token, creation_epoch) VALUES (?, '3', ?, ?)",
+        true,
+        array($tokeninfo['session'], $tokeninfo['token'], time())
+    );
 }
 
 /**
@@ -70,11 +75,20 @@ function checkAuthTokenValidity($request, $token) {
     $now = time();
     
     // clean expired tokens
-    sqlrequest( $database_rgmweb, "DELETE FROM sessions WHERE creation_epoch < '" . ($now - $rgmauth_ttl) . "';", false);
+    sqlrequest(
+        $database_rgmweb,
+        "DELETE FROM sessions WHERE creation_epoch < ?",
+        false,
+        array($now - $rgmauth_ttl)
+    );
 
     // try to find an existing token
-    $stmt = sqlrequest( $database_rgmweb, "SELECT session_id, creation_epoch, user_id, session_type FROM sessions "
-        . "WHERE session_type >= 2 AND  session_type <= 3 AND session_token = '" . $token . "';",  false);
+    $stmt = sqlrequest(
+        $database_rgmweb,
+        "SELECT session_id, creation_epoch, user_id, session_type FROM sessions WHERE session_type >= 2 AND  session_type <= 3 AND session_token = ?",
+        false,
+        array($token)
+    );
     $sql_raw = mysqli_fetch_row($stmt);
 
     if (count($sql_raw) == 4) {
@@ -83,7 +97,7 @@ function checkAuthTokenValidity($request, $token) {
         $tokenInfo['status'] = "authorized";
         switch ($sql_raw[3]) {
             case 2:
-                $stmt = sqlrequest( $database_rgmweb, "SELECT user_name FROM users WHERE user_id = '" . $sql_raw[2] . "';", false);
+                $stmt = sqlrequest( $database_rgmweb, "SELECT user_name FROM users WHERE user_id = ?", false, array($sql_raw[2]));
                 $tokenInfo['username'] = mysqli_result($stmt, 0, "user_name");
                 break;
             case 3:
@@ -127,9 +141,13 @@ function getAuthToken() {
         //IF match the hashed password
         if($userpasswd == $password) {
             $tokeninfo = _genToken($username);
-            $newsession = sqlrequest( $database_rgmweb, "INSERT INTO `sessions` (session_id, user_id, session_type, session_token, creation_epoch) VALUES ('" .
-                $tokeninfo['session'] . "','" . $user_id . "', '2', '" . $tokeninfo['token'] . "', '". time() . "');", true);
-    
+            $newsession = sqlrequest(
+                $database_rgmweb,
+                "INSERT INTO `sessions` (session_id, user_id, session_type, session_token, creation_epoch)
+                VALUES (?, ?, '2', ?, ?)",
+                true,
+                array($tokeninfo['session'], $user_id, $tokeninfo['token'], time())
+            );
             $array = array("RGMAPI_TOKEN" => $tokeninfo['token']);
             $result = getJsonResponse($response, "200", $array);
             echo $result;
