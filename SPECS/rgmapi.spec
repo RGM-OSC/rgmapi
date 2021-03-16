@@ -2,7 +2,7 @@ Summary:        API for the RGM suite.
 Name:           rgmapi
 Version:        1.1
 Release:        6.rgm
-Source0:        %{name}-%{version}.tar.gz
+Source0:        %{name}.tar.gz
 Source1:        httpd-rgmapi.example.conf
 Group:          Applications/System
 License:        GPL
@@ -20,7 +20,7 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-root
 RGM includes a web-based "RESTful" API (Application Programming Interface) called RGMAPI that enables external programs to access information from the monitoring database and to manipulate objects inside the databases of RGM suite.
 
 %prep
-%setup -q -n %{name}-%{version}
+%setup -q -n %{name}
 
 %build
 
