@@ -49,9 +49,9 @@ function _genOneTimeToken() {
     $tokeninfo = _genToken('one-time-token');
     sqlrequest(
         $database_rgmweb,
-        "INSERT INTO `sessions` (session_id, session_type, session_token, creation_epoch) VALUES (?, '3', ?, ?)",
+        "INSERT INTO sessions (session_id, session_token, session_type, creation_epoch, update_epoch) VALUES (?, ?, 3, UNIX_TIMESTAMP(), UNIX_TIMESTAMP())",
         true,
-        array($tokeninfo['session'], $tokeninfo['token'], time())
+        array($tokeninfo['session'], $tokeninfo['token'])
     );
 }
 
@@ -75,9 +75,15 @@ function checkAuthTokenValidity($request, $token) {
     $now = time();
     
     // clean expired tokens
+    // FIXME: Alex: j'émets une réserve sur cette suppression, j'ai un doute que le calcul soit identique
+    // à ce qu'on fait ailleurs. UNIX_TIMESTAMP() ==> à vérifier
+    // D'autre part si on ne veut supprimer que les sessions liées à des tokens, autant ajouter la clause qui
+    // va bien. D'une manière générale, je suis pas pour DU TOUT pour supprimer des éléments d'une table de session.
+    // Ca sert quand même de trace, on peut purger tout ce qui a plus d'un an par exemple mais pas des trucs échus
+    // depuis une journée.
     sqlrequest(
         $database_rgmweb,
-        "DELETE FROM sessions WHERE creation_epoch < ?",
+        "DELETE FROM sessions WHERE creation_epoch < ? AND session_type IN (2, 3)",
         false,
         array($now - $rgmauth_ttl)
     );
@@ -85,7 +91,7 @@ function checkAuthTokenValidity($request, $token) {
     // try to find an existing token
     $stmt = sqlrequest(
         $database_rgmweb,
-        "SELECT session_id, creation_epoch, user_id, session_type FROM sessions WHERE session_type >= 2 AND  session_type <= 3 AND session_token = ?",
+        "SELECT session_id, creation_epoch, user_id, session_type FROM sessions WHERE session_type IN (2, 3) AND session_token = ?",
         false,
         array($token)
     );
