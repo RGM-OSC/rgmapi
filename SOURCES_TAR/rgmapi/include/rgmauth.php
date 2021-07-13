@@ -95,16 +95,21 @@ function checkAuthTokenValidity($request, $token) {
         $tokenInfo['session_id'] = $sql_raw[0];
         $tokenInfo['creation_epoch'] = $sql_raw[1];
         $tokenInfo['status'] = "authorized";
-        switch ($sql_raw[3]) {
+        $session_type = $sql_raw[3];
+        switch ($session_type) {
             case 2:
-                $stmt = sqlrequest( $database_rgmweb, "SELECT user_name FROM users WHERE user_id = ?", false, array($sql_raw[2]));
+                $stmt = sqlrequest($database_rgmweb, "SELECT user_name FROM users WHERE user_id = ?", false, array($sql_raw[2]));
                 $tokenInfo['username'] = mysqli_result($stmt, 0, "user_name");
                 break;
             case 3:
                 $tokenInfo['username'] = 'one-time-token';
                 break;
+            default:
+                error_log("checkAuthTokenValidity() : unknown session_type=" . $session_type);
+                break;
         }
     }
+
     return $tokenInfo;
 }
 
@@ -122,12 +127,11 @@ function getAuthToken() {
     $username = $request->get('username');
     $password = md5($request->get('password')); // NOSONAR
     
-    if ( ($userintable = getUserByUsername($username)) ) {
+    if ($userintable = getUserByUsername($username)) {
         $user_id = mysqli_result($userintable, 0, "user_id");
         $user_right = mysqli_result($userintable, 0, "readonly");
         $user_type = mysqli_result($userintable, 0, "user_type");
         $userpasswd = mysqli_result($userintable, 0, "user_passwd");
-
     } else {
         $array = array("message" => "Wrong credentials (invalid username or password)");
         $result = getJsonResponse($response, "401", $array);
@@ -136,16 +140,14 @@ function getAuthToken() {
     }
     
     // access to API require user with admin privs
-    if( $user_type != "1" && $user_right == "1") {
-        
+    if ($user_type != "1" && $user_right == "1") {
         //IF match the hashed password
         if($userpasswd == $password) {
             $tokeninfo = _genToken($username);
-            $newsession = sqlrequest(
+            sqlrequest(
                 $database_rgmweb,
-                "INSERT INTO `sessions` (session_id, user_id, session_type, session_token, creation_epoch)
-                VALUES (?, ?, '2', ?, ?)",
-                true,
+                "INSERT INTO `sessions` (session_id, user_id, session_type, session_token, creation_epoch) VALUES (?, ?, 2, ?, ?)",
+                false,
                 array($tokeninfo['session'], $user_id, $tokeninfo['token'], time())
             );
             $array = array("RGMAPI_TOKEN" => $tokeninfo['token']);
@@ -166,7 +168,7 @@ function getAuthToken() {
 /**
  * @brief   find token in Slim::request parameters (either in URI params and/or in HTTP headers)
  */
-function getTokenParameter($request, $body) { 
+function getTokenParameter($request, $body = null) { 
     // Search for token parameter passed as variable or in http headers
     $token = '';
     if ($header = $request->headers->get('token')) {
@@ -196,6 +198,6 @@ function checkAuthToken($token) {
 
 function clearOneTimeToken($token) {
     global $database_rgmweb;
-    sqlrequest( $database_rgmweb, "DELETE FROM sessions WHERE session_type = 3 AND session_token = '$token';", false);
+    sqlrequest( $database_rgmweb, "DELETE FROM sessions WHERE session_type = 3 AND session_token = ?", false, array($token));
 }
 ?>
