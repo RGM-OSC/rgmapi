@@ -16,12 +16,12 @@
 
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT & ~E_WARNING);
  
-include("/srv/rgm/rgmweb/include/config.php");
-include("/srv/rgm/rgmweb/include/arrays.php");
-include("/srv/rgm/rgmweb/include/function.php");
-include("/srv/rgm/rgmweb/include/livestatus/Client.php");
-include("/srv/rgm/rgmweb/module/monitoring_ged/ged_functions.php");
-include("/srv/rgm/lilac/includes/config.inc");
+include_once("/srv/rgm/rgmweb/include/config.php");
+include_once("/srv/rgm/rgmweb/include/arrays.php");
+include_once("/srv/rgm/rgmweb/include/function.php");
+include_once("/srv/rgm/rgmweb/include/livestatus/Client.php");
+include_once("/srv/rgm/rgmweb/module/monitoring_ged/ged_functions.php");
+include_once("/srv/rgm/lilac/includes/config.inc");
 
 use Nagios\Livestatus\Client;
 
@@ -46,10 +46,11 @@ class ObjectManager {
         $logs = $error.$success;
         $countLogs = substr_count($logs, "\n");
         
-        if( $countLogs > 1 )
+        if( $countLogs > 1 ) {
             $logs = str_replace("\n", " | ", $logs );
-        else
+        } else {
             $logs = str_replace("\n", "", $logs);
+        }
 
         return rtrim($logs," | ");
 	}

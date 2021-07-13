@@ -33,7 +33,7 @@ function _genToken($username) {
     $salt = mcrypt_create_iv(22, MCRYPT_DEV_URANDOM);
     $salt = base64_encode($salt);
     $salt = str_replace('+', '.', $salt);
-    $ret['token'] = hash('sha256', crypt($username, '$2y$10$'.$salt.'$') . $_SERVER['SERVER_ADDR']);
+    $ret['token'] = hash('sha256', crypt($username, '$2y$10$'.$salt.'$') . $_SERVER['SERVER_ADDR']); // NOSONAR
     return $ret;
 }
 
@@ -45,9 +45,9 @@ function _genToken($username) {
  * @return  nothing
  */
 function _genOneTimeToken() {
-
+    global $database_rgmweb;
     $tokeninfo = _genToken('one-time-token');
-    $newsession = sqlrequest(
+    sqlrequest(
         $database_rgmweb,
         "INSERT INTO `sessions` (session_id, session_type, session_token, creation_epoch) VALUES (?, '3', ?, ?)",
         true,
@@ -120,7 +120,7 @@ function getAuthToken() {
     $userpasswd = '';
 
     $username = $request->get('username');
-    $password = md5($request->get('password'));
+    $password = md5($request->get('password')); // NOSONAR
     
     if ( ($userintable = getUserByUsername($username)) ) {
         $user_id = mysqli_result($userintable, 0, "user_id");
