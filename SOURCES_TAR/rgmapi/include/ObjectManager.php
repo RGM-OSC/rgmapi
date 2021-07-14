@@ -63,18 +63,17 @@ class ObjectManager {
 	 */
 	private function exportConfigurationToNagios(&$error = "", &$success = "", $jobName = "nagios") {
         $c = new Criteria();
-        //$c->add(ExportJobPeer::END_TIME, null);
         $exportJobs = ExportJobPeer::doSelect($c);
         
         $nagiosJobId = NULL;
-        foreach($exportJobs as $job){
-            if( $job->getName() == $jobName ){
+        foreach ($exportJobs as $job) {
+            if($job->getName() == $jobName) {
                 $nagiosJobId = $job->getId();
                 break;
             }
         }
 
-        if( $nagiosJobId != NULL ){
+        if ($nagiosJobId != NULL) {
             $exportJob = ExportJobPeer::retrieveByPK( $nagiosJobId );
             $exportJob->setStatusCode(ExportJob::STATUS_STARTING);
             $exportJob->setStartTime(time());
@@ -83,8 +82,7 @@ class ObjectManager {
             exec("php /srv/rgm/lilac/exporter/export.php " . $exportJob->getId() . " > /dev/null 2>&1", $tempOutput, $retVal);   
             
             $success .= $jobName." : Nagios configuration exported\n";
-        }
-        else{
+        } else {
             $error .= "ERROR during nagios configuration export\n";
         }            
     }
@@ -99,11 +97,10 @@ class ObjectManager {
 	 */
 	private function checkLiveStatusSocket($type, $address, $port, $path) {
 		$host = false;
-		if($type == "unix"){
+		if ($type == "unix") {
 			$socket_path_connexion = "unix://".$path;
 			$host = fsockopen($socket_path_connexion, $port, $errno, $errstr, 5);
-		}
-		else{
+		} else {
 			$host = fsockopen($address, $port, $errno, $errstr, 5);
 		}
 		return $host;
@@ -136,75 +133,6 @@ class ObjectManager {
 			}
 		}
 	}
-
-	/* LIVESTATUS - set nagios objects */
-/*	private function SetNagiosObjects( $object, $backendid = NULL, $columns = FALSE, $filters = FALSE ) {
-	
-		// loop on each socket
-		$sockets = getRGMConfig("sockets","array");
-
-		if($backendid != NULL) {
-			$sockets = array_slice($sockets,$backendid,1);
-		}
-		foreach($sockets as $socket){
-			$socket_parts = explode(":", $socket);
-			$socket_type = $socket_parts[0];
-			$socket_address = $socket_parts[1];
-			$socket_port = $socket_parts[2];
-			$socket_path = $socket_parts[3];
-			$socket_name = $socket;
-
-			// check if socket disabled
-			if(isset($socket_parts[4]) && $backendid == NULL) {
-				continue;
-			}
-
-			// check if socket is up
-			if( $this->checkLiveStatusSocket($socket_type,$socket_address,$socket_port,$socket_path) ){
-				if($socket_port == -1){
-					$socket_port = "";
-					$socket_address = "";
-					$socket_name = "default";
-				}
-				$options = array(
-					'socketType' => $socket_type,
-					'socketAddress' => $socket_address,
-					'socketPort' => $socket_port,
-					'socketPath' => $socket_path
-				);
-
-				// construct mklivestatus request, and get the response
-				$client = new Client($options);
-
-				// get objects
-				$result[$socket_name] = $client->get($object);
-				
-				// get columns
-				if($columns) {
-					$result[$socket_name] = $result[$socket_name]->columns($columns);
-				}		
-
-				// get filters
-				if($filters) {
-					foreach($filters as $filter) {
-						$result[$socket_name] = $result[$socket_name]->filter($filter);
-					}
-				}
-
-				// set user
-				$result[$socket_name] = $result[$socket_name]->authUser($this->authUser);
-				
-				// execute
-				$result[$socket_name] = $result[$socket_name]->executeAssoc();
-			}
-		}
-
-		// response for the Ajax call
-		// print_r($result);
-		return $result;
-
-	}*/
-
 
 	/**
 	 * @brief	returns a Lilac Host object for referenced hostname
@@ -297,15 +225,15 @@ class ObjectManager {
         $nhtp = new NagiosHostTemplatePeer;
 		// Find host template
 		$template_host = $nhtp->getByName($templateHostName);
-		if(!$template_host) {
+		if (!$template_host) {
 			return "Host Template $templateHostName not found\n";
-		}else{
+		} else {
 			$hostList=$template_host->getAffectedHosts();
-			if(!$hostList){
+			if (!$hostList) {
 				return "No Host found for the template : $templateHostName \n";
-			}else{
+			} else {
 				$result = array();
-				foreach($hostList as $host){
+				foreach($hostList as $host) {
 					array_push($result,$host->toArray());
 				}
 				return $result;
@@ -322,15 +250,15 @@ class ObjectManager {
 		$nhgp = new NagiosHostgroupPeer;
 		//Find HostGroup
 		$hostGroup = $nhgp->getByName( $hostGroupName );
-		if(!$hostGroup) {
+		if (!$hostGroup) {
 			return "HostGroup named $hostGroupName not found\n";
-		}else{
+		} else {
 			$hostList=$hostGroup->getMembers();
-			if(!$hostList){
+			if (!$hostList) {
 				return "No Host found for the HostGroup: $hostGroupName \n";
-			}else{
+			} else {
 				$result = array();
-				foreach($hostList as $host){
+				foreach ($hostList as $host) {
 					array_push($result,$host->toArray());
 				}
 				return $result;
@@ -363,7 +291,6 @@ class ObjectManager {
 		}
 	}
 
-
 	/**
 	 * @brief	get all services attached to a specified Lilac HostTemplate
 	 * @param	$hostName	The HostTemplate to query
@@ -391,12 +318,12 @@ class ObjectManager {
 
 	/**
 	 * @brief	Retrieve Nagios Downtimes from LiveStatus
-	 * @return	an array containing a list of active downtimes
+	 * @return	Array an array containing a list of active downtimes
 	 */
 	public function getDowntimes() {
-		$downtime=array();
-		$tab=array("author", "comment", "duration", "end_time", "entry_time", "fixed", "id", "is_service", "triggered_by", "type", "start_time");
-		$tabDate=array("end_time", "entry_time", "start_time");
+		$downtime = array();
+		$tab = array("author", "comment", "duration", "end_time", "entry_time", "fixed", "id", "is_service", "triggered_by", "type", "start_time");
+		$tabDate = array("end_time", "entry_time", "start_time");
 		foreach ($this->listNagiosObjects("downtimes",NULL,$tab)["default"] as $downtimes) {
 			foreach ($downtimes as $k=>$down) {
 				if (in_array($k,$tabDate)) {
@@ -414,12 +341,12 @@ class ObjectManager {
 	 * @return	an array containing a list of down hosts
 	 */
 	public function getHostsDown() {
-		$HostsDown=array();
-		$tabColumns=array("id", "name", "address", "services_with_state", "last_state_change",
+		$HostsDown = array();
+		$tabColumns = array("id", "name", "address", "services_with_state", "last_state_change",
 			"acknowledged", "acknowledged_type", "comment", "comments_with_info", "notifications_enabled");
-		$tabFilters=array("state = 1");
-		$tabDate=array("last_state_change");
-		$tabConcat=array("comments_with_info");
+		$tabFilters = array("state = 1");
+		$tabDate = array("last_state_change");
+		$tabConcat = array("comments_with_info");
 
 		$dateT=array();
 		foreach ($this->listNagiosObjects("hosts",NULL,$tabColumns,$tabFilters)["default"] as $hd ) {
@@ -463,7 +390,6 @@ class ObjectManager {
 	 */
 	/* RGMWEB-LIVESTATUS - Get Services Down*/	
 	public function getServicesDown() {
-
 		$ServiceDown=array();
 		$tabColumns=array("id", "host_name", "host_address", "display_name", "acknowledged",
 			"acknowledged_type", "comment", "comments_with_info", "last_state_change");
@@ -1121,7 +1047,6 @@ class ObjectManager {
             $error .= "Unable to create user $userName\n";	
         }
 
-
         // RGMWEB - XML Filter creation
         $xml_file = "/srv/rgm/rgmweb/cache/".$userName."-ged.xml";
         $dom = openXml();
@@ -1144,35 +1069,30 @@ class ObjectManager {
             $filter->setAttribute("name", $filterName);
             $filter->appendChild($dom->createTextNode( $filterValue ));    
         }
-        
-        
-        
+
         $dom->save($xml_file);
         $xml=$dom->saveXML();
 
         $fp=@fopen($xml_file,"w+");
-        
+
         if(fwrite($fp,$xml)) {
             $success .= "Events filters file $xml_file is created\n";
         } else {
             $error .= "Unable to create xml file\n";
         }
-        
+
         fclose($fp);
 
         chown($xml_file,"apache");
         chgrp($xml_file,"apache");
-        
-        
+
         // Export
         if( $exportConfiguration == TRUE )
             $this->exportConfigurationToNagios($error, $success);
 
-
         $logs = $this->getLogs($error, $success);
-        
+
         return $logs;
-        
 	}
 	
 	public function createMutipleHosts($hosts, $exportConfiguration=false){
