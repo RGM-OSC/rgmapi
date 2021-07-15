@@ -131,7 +131,7 @@ function getAuthToken() {
     $userpasswd = '';
 
     $username = $request->get('username');
-    $password = md5($request->get('password')); // NOSONAR
+    $password = RgmSession::getHashedPassword($request->get('password')); // NOSONAR
     
     if ($userintable = getUserByUsername($username)) {
         $user_id = mysqli_result($userintable, 0, "user_id");
