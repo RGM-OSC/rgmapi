@@ -1,7 +1,7 @@
 Summary:        API for the RGM suite.
 Name:           rgmapi
 Version:        1.2
-Release:        0.rgm
+Release:        1.rgm
 Source0:        %{name}.tar.gz
 Source1:        httpd-rgmapi.example.conf
 Group:          Applications/System
@@ -51,6 +51,10 @@ rm -rf %{buildroot}
 
 
 %changelog
+* Tue Jul 13 2021 Alex Rocher <arocjer@fr.scc.com> - 1.2-1.rgm
+- bind SQL requests
+- Fix: RGMApi should only remove sessions with type 2 or 3
+
 * Tue Mar 16 2021 Eric Belhomme <ebelhomme@fr.scc.com> - 1.2-0.rgm
 - bind SQL requests
 - align session management with rgmweb

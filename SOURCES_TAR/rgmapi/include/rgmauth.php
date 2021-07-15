@@ -33,7 +33,7 @@ function _genToken($username) {
     $salt = mcrypt_create_iv(22, MCRYPT_DEV_URANDOM);
     $salt = base64_encode($salt);
     $salt = str_replace('+', '.', $salt);
-    $ret['token'] = hash('sha256', crypt($username, '$2y$10$'.$salt.'$') . $_SERVER['SERVER_ADDR']);
+    $ret['token'] = hash('sha256', crypt($username, '$2y$10$'.$salt.'$') . $_SERVER['SERVER_ADDR']); // NOSONAR
     return $ret;
 }
 
@@ -45,13 +45,13 @@ function _genToken($username) {
  * @return  nothing
  */
 function _genOneTimeToken() {
-
+    global $database_rgmweb;
     $tokeninfo = _genToken('one-time-token');
-    $newsession = sqlrequest(
+    sqlrequest(
         $database_rgmweb,
-        "INSERT INTO `sessions` (session_id, session_type, session_token, creation_epoch) VALUES (?, '3', ?, ?)",
+        "INSERT INTO sessions (session_id, session_token, session_type, creation_epoch, update_epoch) VALUES (?, ?, 3, UNIX_TIMESTAMP(), UNIX_TIMESTAMP())",
         true,
-        array($tokeninfo['session'], $tokeninfo['token'], time())
+        array($tokeninfo['session'], $tokeninfo['token'])
     );
 }
 
@@ -75,9 +75,15 @@ function checkAuthTokenValidity($request, $token) {
     $now = time();
     
     // clean expired tokens
+    // FIXME: Alex: j'émets une réserve sur cette suppression, j'ai un doute que le calcul soit identique
+    // à ce qu'on fait ailleurs. UNIX_TIMESTAMP() ==> à vérifier
+    // D'autre part si on ne veut supprimer que les sessions liées à des tokens, autant ajouter la clause qui
+    // va bien. D'une manière générale, je suis pas pour DU TOUT pour supprimer des éléments d'une table de session.
+    // Ca sert quand même de trace, on peut purger tout ce qui a plus d'un an par exemple mais pas des trucs échus
+    // depuis une journée.
     sqlrequest(
         $database_rgmweb,
-        "DELETE FROM sessions WHERE creation_epoch < ?",
+        "DELETE FROM sessions WHERE creation_epoch < ? AND session_type IN (2, 3)",
         false,
         array($now - $rgmauth_ttl)
     );
@@ -85,7 +91,7 @@ function checkAuthTokenValidity($request, $token) {
     // try to find an existing token
     $stmt = sqlrequest(
         $database_rgmweb,
-        "SELECT session_id, creation_epoch, user_id, session_type FROM sessions WHERE session_type >= 2 AND  session_type <= 3 AND session_token = ?",
+        "SELECT session_id, creation_epoch, user_id, session_type FROM sessions WHERE session_type IN (2, 3) AND session_token = ?",
         false,
         array($token)
     );
@@ -95,16 +101,21 @@ function checkAuthTokenValidity($request, $token) {
         $tokenInfo['session_id'] = $sql_raw[0];
         $tokenInfo['creation_epoch'] = $sql_raw[1];
         $tokenInfo['status'] = "authorized";
-        switch ($sql_raw[3]) {
+        $session_type = $sql_raw[3];
+        switch ($session_type) {
             case 2:
-                $stmt = sqlrequest( $database_rgmweb, "SELECT user_name FROM users WHERE user_id = ?", false, array($sql_raw[2]));
+                $stmt = sqlrequest($database_rgmweb, "SELECT user_name FROM users WHERE user_id = ?", false, array($sql_raw[2]));
                 $tokenInfo['username'] = mysqli_result($stmt, 0, "user_name");
                 break;
             case 3:
                 $tokenInfo['username'] = 'one-time-token';
                 break;
+            default:
+                error_log("checkAuthTokenValidity() : unknown session_type=" . $session_type);
+                break;
         }
     }
+
     return $tokenInfo;
 }
 
@@ -120,14 +131,13 @@ function getAuthToken() {
     $userpasswd = '';
 
     $username = $request->get('username');
-    $password = md5($request->get('password'));
+    $password = md5($request->get('password')); // NOSONAR
     
-    if ( ($userintable = getUserByUsername($username)) ) {
+    if ($userintable = getUserByUsername($username)) {
         $user_id = mysqli_result($userintable, 0, "user_id");
         $user_right = mysqli_result($userintable, 0, "readonly");
         $user_type = mysqli_result($userintable, 0, "user_type");
         $userpasswd = mysqli_result($userintable, 0, "user_passwd");
-
     } else {
         $array = array("message" => "Wrong credentials (invalid username or password)");
         $result = getJsonResponse($response, "401", $array);
@@ -136,16 +146,14 @@ function getAuthToken() {
     }
     
     // access to API require user with admin privs
-    if( $user_type != "1" && $user_right == "1") {
-        
+    if ($user_type != "1" && $user_right == "1") {
         //IF match the hashed password
         if($userpasswd == $password) {
             $tokeninfo = _genToken($username);
-            $newsession = sqlrequest(
+            sqlrequest(
                 $database_rgmweb,
-                "INSERT INTO `sessions` (session_id, user_id, session_type, session_token, creation_epoch)
-                VALUES (?, ?, '2', ?, ?)",
-                true,
+                "INSERT INTO `sessions` (session_id, user_id, session_type, session_token, creation_epoch) VALUES (?, ?, 2, ?, ?)",
+                false,
                 array($tokeninfo['session'], $user_id, $tokeninfo['token'], time())
             );
             $array = array("RGMAPI_TOKEN" => $tokeninfo['token']);
@@ -166,7 +174,7 @@ function getAuthToken() {
 /**
  * @brief   find token in Slim::request parameters (either in URI params and/or in HTTP headers)
  */
-function getTokenParameter($request, $body) { 
+function getTokenParameter($request, $body = null) { 
     // Search for token parameter passed as variable or in http headers
     $token = '';
     if ($header = $request->headers->get('token')) {
@@ -196,6 +204,6 @@ function checkAuthToken($token) {
 
 function clearOneTimeToken($token) {
     global $database_rgmweb;
-    sqlrequest( $database_rgmweb, "DELETE FROM sessions WHERE session_type = 3 AND session_token = '$token';", false);
+    sqlrequest( $database_rgmweb, "DELETE FROM sessions WHERE session_type = 3 AND session_token = ?", false, array($token));
 }
 ?>

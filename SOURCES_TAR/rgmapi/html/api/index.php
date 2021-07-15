@@ -18,10 +18,10 @@
  */
 
 
-require "/srv/rgm/rgmapi/include/Slim/Slim.php";
-require "/srv/rgm/rgmapi/include/rgmauth.php";
-require "/srv/rgm/rgmapi/include/api_functions.php";
-require "/srv/rgm/rgmapi/include/ObjectManager.php";
+require_once "/srv/rgm/rgmapi/include/Slim/Slim.php";
+require_once "/srv/rgm/rgmapi/include/rgmauth.php";
+require_once "/srv/rgm/rgmapi/include/api_functions.php";
+require_once "/srv/rgm/rgmapi/include/ObjectManager.php";
 
 \Slim\Slim::registerAutoloader();
 $app = new \Slim\Slim();
@@ -195,6 +195,7 @@ function addRoute($httpMethod, $routeName, $methodName, $acl) {
                 case JSON_ERROR_UNSUPPORTED_TYPE: $array['error'] = 'JSON Error: JSON_ERROR_UNSUPPORTED_TYPE'; break;
                 case JSON_ERROR_INVALID_PROPERTY_NAME: $array['error'] = 'JSON Error: JSON_ERROR_INVALID_PROPERTY_NAME'; break;
                 case JSON_ERROR_UTF16: $array['error'] = 'JSON Error: JSON_ERROR_UTF16'; break;
+                default: $array['error'] = 'JSON Error: UNKNOWN ERROR'; break;
             }
             $result = getJsonResponse($response, "406", $array);
             echo $result;
@@ -235,10 +236,13 @@ function addRoute($httpMethod, $routeName, $methodName, $acl) {
         }
         // ensure passed parameters are required by routed function
         foreach ($request->get() as $key => $value) {
-            if ($key == 'token')
+            if ($key == 'token') {
                 continue;
+            }
             if (in_array( $key, $params[0]) == false) {
-                if ($msg != '') $msg .= ', ';
+                if ($msg != '') {
+                    $msg .= ', ';
+                }
                 $msg .= 'unknown parameter: ' . $key;
             }
         }
@@ -246,7 +250,9 @@ function addRoute($httpMethod, $routeName, $methodName, $acl) {
         $keys = array_keys($params[1]);
         foreach ($params[0] as $fnparam) {
             if (in_array( $fnparam, $keys) == false) {
-                if ($msg != '') $msg .= ', ';
+                if ($msg != '') {
+                    $msg .= ', ';
+                }
                 $msg .= 'missing parameter: ' . $key;
             }
         }
