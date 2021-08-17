@@ -135,19 +135,21 @@
     $userpasswd = '';
 
     $username = $request->get('username');
-    $password = RgmSession::getHashedPassword($request->get('password')); // NOSONAR
     
     if ($userintable = getUserByUsername($username)) {
       $user_id = mysqli_result($userintable, 0, "user_id");
       $user_right = mysqli_result($userintable, 0, "readonly");
       $user_type = mysqli_result($userintable, 0, "user_type");
       $userpasswd = mysqli_result($userintable, 0, "user_passwd");
+      $hash_method = mysqli_result($userintable, 0, "hash_method");
     } else {
       $array = array("message" => "Wrong credentials (invalid username or password)");
       $result = getJsonResponse($response, "401", $array);
       echo $result;
       return;
     }
+
+    $password = RgmSession::getHashedPassword($request->get('password'), $hash_method); // NOSONAR
 
     // access to API require user with admin privs
     if ($user_type != "1" && $user_right == "1") {
