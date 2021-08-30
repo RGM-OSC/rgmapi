@@ -1,7 +1,7 @@
 Summary:        API for the RGM suite.
 Name:           rgmapi
 Version:        1.2
-Release:        2.rgm
+Release:        3.rgm
 Source0:        %{name}.tar.gz
 Source1:        httpd-rgmapi.example.conf
 Group:          Applications/System
@@ -51,6 +51,9 @@ rm -rf %{buildroot}
 
 
 %changelog
+* Tue Aug 31 2021 Alex Rocher <arocher@fr.scc.com> - 1.2-3.rgm
+- Add RGMApi v2, route is /api/v2
+
 * Tue Aug 17 2021 Alex Rocher <arocher@fr.scc.com> - 1.2-2.rgm
 - Security: change hash MD5 to SHA512 for password
 - Code cleaning

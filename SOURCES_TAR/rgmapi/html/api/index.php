@@ -17,7 +17,10 @@
    * GNU General Public License for more details.
    */
 
-
+  include_once("/srv/rgm/rgmweb/include/config.php");
+  include_once("/srv/rgm/rgmweb/include/arrays.php");
+  include_once("/srv/rgm/rgmweb/include/function.php");
+  include_once("/srv/rgm/rgmweb/module/monitoring_ged/ged_functions.php");
   require_once "/srv/rgm/rgmapi/include/Slim/Slim.php";
   require_once "/srv/rgm/rgmapi/include/rgmauth.php";
   require_once "/srv/rgm/rgmapi/include/api_functions.php";

@@ -16,12 +16,9 @@
 
   error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT & ~E_WARNING);
 
-  include_once("/srv/rgm/rgmweb/include/config.php");
-  include_once("/srv/rgm/rgmweb/include/arrays.php");
-  include_once("/srv/rgm/rgmweb/include/function.php");
   include_once("/srv/rgm/rgmweb/include/livestatus/Client.php");
-  include_once("/srv/rgm/rgmweb/module/monitoring_ged/ged_functions.php");
   include_once("/srv/rgm/lilac/includes/config.inc");
+  require_once("api_functions.php");
 
   use Nagios\Livestatus\Client;
 
