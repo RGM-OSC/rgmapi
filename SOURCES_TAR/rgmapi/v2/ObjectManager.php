@@ -5261,6 +5261,14 @@ class ObjectManager
         }
         return $items;
     }
+
+    public static function test1() {
+        return array("test1");
+    }
+
+    public static function test2() {
+        return array("test2");
+    }
 }
 
 ?>

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * RGMAPI
  * Route calls
@@ -195,6 +196,7 @@ $app->get('/checkAuthToken', function () {
  * @param string $routeName the API route name
  * @param string $methodName the callback function to register with this route, implemented on ObjectManager class
  * @param string $acl the ACL the caller must comply with
+ * @throws ReflectionException
  */
 function addRoute($httpMethod, $routeName, $methodName, $acl)
 {
@@ -231,13 +233,13 @@ function addRoute($httpMethod, $routeName, $methodName, $acl)
                 case JSON_ERROR_UNSUPPORTED_TYPE:
                     $array['error'] = 'JSON Error: JSON_ERROR_UNSUPPORTED_TYPE';
                     break;
-                // Errors known from PHP 7
-                // case JSON_ERROR_INVALID_PROPERTY_NAME:
-                //     $array['error'] = 'JSON Error: JSON_ERROR_INVALID_PROPERTY_NAME';
-                //     break;
-                // case JSON_ERROR_UTF16:
-                //     $array['error'] = 'JSON Error: JSON_ERROR_UTF16';
-                //     break;
+                    // Errors known from PHP 7
+                    // case JSON_ERROR_INVALID_PROPERTY_NAME:
+                    //     $array['error'] = 'JSON Error: JSON_ERROR_INVALID_PROPERTY_NAME';
+                    //     break;
+                    // case JSON_ERROR_UTF16:
+                    //     $array['error'] = 'JSON Error: JSON_ERROR_UTF16';
+                    //     break;
                 default:
                     $array['error'] = 'JSON Error: UNKNOWN ERROR';
                     break;
