@@ -30,7 +30,6 @@ install -d -m0755 %{buildroot}%{rgm_docdir}/httpd
 install -T -D -m 0644 %{SOURCE1} %{buildroot}%{rgm_docdir}/httpd/httpd-rgmapi.example.conf
 cp -afv ./* %{buildroot}%{datadir}
 cd %{buildroot}%{datadir}
-#doxygen %{buildroot}%{datadir}/Doxyfile
 rm -rf %{buildroot}%{datadir}/%{name}.spec
 
 
