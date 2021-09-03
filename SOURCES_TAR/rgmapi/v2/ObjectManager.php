@@ -1,5 +1,9 @@
 <?php
 /**
+ * @OA\Info(title="RGMApi", version="2.0")
+ */
+
+/**
  * RGMAPI - RGM Objects class
  *
  * Copyright (c) 2017 AXIANS C&S
@@ -37,6 +41,10 @@ class ObjectManager
 
     /**
      * @brief  log function
+     * @OA\Get(
+     *     path="/api/v2/resource.json",
+     *     @OA\Response(response="200", description="Get logs")
+     * )
      */
     private function getLogs($error, $success)
     {
