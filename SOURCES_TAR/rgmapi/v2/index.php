@@ -36,12 +36,12 @@ $app = new Slim();
  * as they handle token stuff an addRoute() assume the token is *already*
  * generated.
  */
-$app->map('/getAuthToken', function () {
+$app->map('/token', function () {
     RgmApiCommon::getAuthToken();
-})->via('GET', 'POST');
-$app->map('/checkAuthToken', function () {
+})->via('POST');
+$app->map('/token', function () {
     RgmApiCommon::checkAuthToken();
-})->via('GET', 'POST');
+})->via('GET');
 $app->map('/testing/(:test)', function ($test) use ($app) {
     $res = array();
 
