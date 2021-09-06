@@ -110,7 +110,18 @@ class RgmApiCommon
      */
     private static function getTokenParameter($request)
     {
-        $token = $request->headers->get('X-RGM-Token');
+        $token = null;
+        // Eg.: Authorization: Bearer AbCdEf123456
+        $bearer = $request->headers->get('Authorization');
+        if ($bearer) {
+            $bearer = explode(' ', $bearer);
+            if (is_array($bearer) && count($bearer) === 2 && strcasecmp('bearer', $bearer[0]) === 0) {
+                $token = $bearer[1];
+            }
+        }
+        if (!$token) {
+            $token = $request->headers->get('X-RGM-Token');
+        }
         if (!$token) {
             $token = $request->params('token');
         }
