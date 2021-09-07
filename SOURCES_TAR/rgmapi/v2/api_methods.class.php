@@ -4994,7 +4994,6 @@ class RgmApiMethods
     /* LIVESTATUS - List nagios objects */
     public function listNagiosObjects($object, $backendid = NULL, $columns = FALSE, $filters = FALSE)
     {
-
         // loop on each socket
         $sockets = getRGMConfig("sockets", "array");
 

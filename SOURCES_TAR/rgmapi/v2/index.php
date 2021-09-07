@@ -20,13 +20,17 @@
 
 use Slim\Slim;
 
-// FIXME : temporaire ... peut-être pas d'ailleurs
-error_reporting(E_ALL);
-
 include_once('../include/Slim/Slim.php');
 include_once('/srv/rgm/rgmweb/include/database.php');
 include_once('api_common.class.php');
 include_once('api_methods.class.php');
+
+// On trace tout uniquement en mode TRACE
+if (RgmConfig::get('rgm_log_level') == 5) {
+    error_reporting(E_ALL);
+} else {
+    error_reporting(E_ERROR);
+}
 
 Slim::registerAutoloader();
 $app = new Slim();
