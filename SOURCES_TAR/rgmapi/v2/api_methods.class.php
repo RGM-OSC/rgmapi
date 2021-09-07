@@ -354,7 +354,7 @@ class RgmApiMethods
      * @brief  Retrieve Nagios hosts currently down from LiveStatus
      * @return  an array containing a list of down hosts
      */
-    public function getHostsDown()
+    public function getHostDown()
     {
         $HostsDown = array();
         $tabColumns = array("id", "name", "address", "services_with_state", "last_state_change",
@@ -3302,7 +3302,6 @@ class RgmApiMethods
         $success = "";
         $code = 0;
         try {
-
             $targetTemplateHost = NagiosHostTemplatePeer::getByName($templateHostName);
             if (!$targetTemplateHost) {
                 $code = 1;
@@ -3321,7 +3320,6 @@ class RgmApiMethods
                         $error .= "The command '" . $commandName . "' does not exist.\n";
                     }
                 }
-
             }
         } catch (Exception $e) {
             $code = 1;
