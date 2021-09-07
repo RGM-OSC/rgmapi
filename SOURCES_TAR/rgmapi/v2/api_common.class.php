@@ -40,18 +40,12 @@ class RgmApiCommon
      */
     const HTTP_200 = 200;
     const HTTP_201 = 201;
-    const HTTP_204 = 204;
     const HTTP_400 = 400;
     const HTTP_401 = 401;
+    const HTTP_404 = 404;
 
-    /*
-    private static $ZOBI = array(
-        'POST' => array(
-            'OK' => HTTP_201,
-            'NOTFOUND' => HTTP_204
-        )
-    );
-    */
+    const CT_FORM = 'application/x-www-form-urlencoded';
+    const CT_JSON = 'application/json';
 
     const INSERT_TOKEN = 'INSERT INTO tokens (token, user_id, creation_epoch, validity_epoch, usage_count, usage_max_count, enabled) VALUES (?, ?, UNIX_TIMESTAMP(), ?, 0, ?, 1)';
 
@@ -165,31 +159,44 @@ class RgmApiCommon
         return $token;
     }
 
-    private static function getJsonResponse($response, $code, $array = null)
+    private static function getJsonResponse($request, $response, $httpCode, $array = null)
     {
-        $app = Slim::getInstance();
+        // Set the compliant http code
+        $method = $request->getMethod();
+        $resultCode = true;
+        if ($httpCode === static::HTTP_200) {
+            if (is_array($array) && is_array($array['result'])) {
+                if (isset($array['result']['code']) && $array['result']['code'] != 0) {
+                    $resultCode = false;
+                }
+            }
+            // Resource created
+            if ($method === 'POST' && $resultCode) {
+                $httpCode = static::HTTP_201;
+            } elseif (!$resultCode) {
+                // Resource not found
+                $httpCode = static::HTTP_404;
+            }
+        }
 
-        // RGM API version is the concatenation on Slim framework version *and* RGM API level revision
-        $codeMessage = $response->getMessageForCode($code);
+        $codeMessage = $response->getMessageForCode($httpCode);
         $arrayHeader = array(
             'version' => static::VERSION,
-            'code' => $code,
+            'code' => $httpCode,
             'message' => $codeMessage
         );
         $arrayMerge = array_merge($arrayHeader, $array);
 
         $jsonResponse = json_encode($arrayMerge, JSON_PRETTY_PRINT);
-        $jsonResponseWithHeader = $jsonResponse;
 
-        $app->response->headers->set('Content-Type', 'application/json');
-        $app->response->setStatus($codeMessage);
+        $response->headers->set('Content-Type', 'application/json');
+        $response->setStatus($httpCode);
 
-        return $jsonResponseWithHeader;
+        return $jsonResponse;
     }
 
-    private static function constructResponse($response, $logs, $authenticationValid = false)
+    private static function constructResponse($request, $response, $logs, $authenticationValid = false)
     {
-        //Only if API keys match
         if ($authenticationValid) {
             try {
                 $array = array(
@@ -197,7 +204,7 @@ class RgmApiCommon
                     'result' => $logs
                 );
                 $httpCode = static::HTTP_200;
-            } catch (PDOException $e) {
+            } catch (Exception $e) {
                 $array = array('error' => $e->getMessage());
                 $httpCode = static::HTTP_400;
             }
@@ -206,7 +213,7 @@ class RgmApiCommon
             $httpCode = static::HTTP_401;
         }
 
-        $result = static::getJsonResponse($response, $httpCode, $array);
+        $result = static::getJsonResponse($request, $response, $httpCode, $array);
         echo $result;
     }
 
@@ -229,13 +236,13 @@ class RgmApiCommon
             $request_password = RgmSession::getHashedPassword($request->params('password'), $hash_method); // NOSONAR
         } else {
             $array = array('message' => 'Wrong credentials (invalid username or password)');
-            $result = static::getJsonResponse($response, static::HTTP_401, $array);
+            $result = static::getJsonResponse($request, $response, static::HTTP_401, $array);
             echo $result;
             return;
         }
 
         // access to API require user with admin privs and should be not an LDAP user
-        $returnCode = static::HTTP_401;
+        $httpCode = static::HTTP_401;
         if ($user_type !== 1) {
             if ($userpasswd === $request_password) {
                 $tokeninfo = static::genToken($username);
@@ -245,7 +252,7 @@ class RgmApiCommon
                     static::TOKEN_PARAMETER_DATE => $tokeninfo[static::TOKEN_PARAMETER_DATE],
                     static::TOKEN_PARAMETER_NAME_RFC => $tokeninfo[static::TOKEN_PARAMETER_NAME_RFC]
                 );
-                $returnCode = static::HTTP_201;
+                $httpCode = static::HTTP_201;
             } else {
                 $message = array('message' => 'Wrong credentials (invalid username or password)');
             }
@@ -253,7 +260,7 @@ class RgmApiCommon
             $message = array('message' => 'LDAP user not allowed to get RGMAPI token');
         }
 
-        $result = static::getJsonResponse($response, $returnCode, $message);
+        $result = static::getJsonResponse($request, $response, $httpCode, $message);
         echo $result;
     }
 
@@ -304,8 +311,9 @@ class RgmApiCommon
 
     public static function checkAuthToken()
     {
-        $request = Slim::getInstance()->request();
-        $response = Slim::getInstance()->response();
+        $app = Slim::getInstance();
+        $request = $app->request();
+        $response = $app->response();
         $token = static::getTokenParameter($request);
         $httpcode = static::HTTP_401;
         $tokenInfo = static::checkAuthTokenValidity($token, ACL_READONLY);
@@ -313,7 +321,7 @@ class RgmApiCommon
             $httpcode = static::HTTP_200;
         }
 
-        echo static::getJsonResponse($response, $httpcode, $tokenInfo);
+        echo static::getJsonResponse($request, $response, $httpcode, $tokenInfo);
     }
 
     /**
@@ -327,54 +335,56 @@ class RgmApiCommon
     public static function addRoute($httpMethod, $routeName, $methodName, $acl)
     {
         $app = Slim::getInstance();
-        $app->map($routeName, function () use ($methodName, $acl) {
-            $request = Slim::getInstance()->request();
-            $response = Slim::getInstance()->response();
-            // ROAROA : ici il faudrait tester le content-type demandé
-            // afin de faire soit du JSON (comme c'est le cas ici présent),
-            // soit du form-encoded
-            $body = json_decode($request->getBody(), true);
-            if (($err = json_last_error()) != 0) {
-                $array = array('error' => 'JSON Error');
-                switch ($err) {
-                    case JSON_ERROR_DEPTH:
-                        $array['error'] = 'JSON Error: JSON_ERROR_DEPTH';
-                        break;
-                    case JSON_ERROR_STATE_MISMATCH:
-                        $array['error'] = 'JSON Error: JSON_ERROR_STATE_MISMATCH';
-                        break;
-                    case JSON_ERROR_CTRL_CHAR:
-                        $array['error'] = 'JSON Error: JSON_ERROR_CTRL_CHAR';
-                        break;
-                    case JSON_ERROR_SYNTAX:
-                        $array['error'] = 'JSON Error: JSON_ERROR_SYNTAX';
-                        break;
-                    case JSON_ERROR_UTF8:
-                        $array['error'] = 'JSON Error: JSON_ERROR_UTF8';
-                        break;
-                    case JSON_ERROR_RECURSION:
-                        $array['error'] = 'JSON Error: JSON_ERROR_RECURSION';
-                        break;
-                    case JSON_ERROR_INF_OR_NAN:
-                        $array['error'] = 'JSON Error: JSON_ERROR_INF_OR_NAN';
-                        break;
-                    case JSON_ERROR_UNSUPPORTED_TYPE:
-                        $array['error'] = 'JSON Error: JSON_ERROR_UNSUPPORTED_TYPE';
-                        break;
-                    // Errors known from PHP 7
-                    // case JSON_ERROR_INVALID_PROPERTY_NAME:
-                    //     $array['error'] = 'JSON Error: JSON_ERROR_INVALID_PROPERTY_NAME';
-                    //     break;
-                    // case JSON_ERROR_UTF16:
-                    //     $array['error'] = 'JSON Error: JSON_ERROR_UTF16';
-                    //     break;
-                    default:
-                        $array['error'] = 'JSON Error: UNKNOWN ERROR';
-                        break;
+        $app->map($routeName, function () use ($methodName, $acl, $app, $httpMethod) {
+            $request = $app->request();
+            $response = $app->response();
+            $contentType = $request->getMediaType();
+            if ($contentType === static::CT_JSON) {
+                $body = json_decode($request->getBody(), true);
+                if (($err = json_last_error()) != 0) {
+                    $array = array('error' => 'JSON Error');
+                    switch ($err) {
+                        case JSON_ERROR_DEPTH:
+                            $array['error'] = 'JSON Error: JSON_ERROR_DEPTH';
+                            break;
+                        case JSON_ERROR_STATE_MISMATCH:
+                            $array['error'] = 'JSON Error: JSON_ERROR_STATE_MISMATCH';
+                            break;
+                        case JSON_ERROR_CTRL_CHAR:
+                            $array['error'] = 'JSON Error: JSON_ERROR_CTRL_CHAR';
+                            break;
+                        case JSON_ERROR_SYNTAX:
+                            $array['error'] = 'JSON Error: JSON_ERROR_SYNTAX';
+                            break;
+                        case JSON_ERROR_UTF8:
+                            $array['error'] = 'JSON Error: JSON_ERROR_UTF8';
+                            break;
+                        case JSON_ERROR_RECURSION:
+                            $array['error'] = 'JSON Error: JSON_ERROR_RECURSION';
+                            break;
+                        case JSON_ERROR_INF_OR_NAN:
+                            $array['error'] = 'JSON Error: JSON_ERROR_INF_OR_NAN';
+                            break;
+                        case JSON_ERROR_UNSUPPORTED_TYPE:
+                            $array['error'] = 'JSON Error: JSON_ERROR_UNSUPPORTED_TYPE';
+                            break;
+                        // Errors known from PHP 7
+                        // case JSON_ERROR_INVALID_PROPERTY_NAME:
+                        //     $array['error'] = 'JSON Error: JSON_ERROR_INVALID_PROPERTY_NAME';
+                        //     break;
+                        // case JSON_ERROR_UTF16:
+                        //     $array['error'] = 'JSON Error: JSON_ERROR_UTF16';
+                        //     break;
+                        default:
+                            $array['error'] = 'JSON Error: UNKNOWN ERROR';
+                            break;
+                    }
+                    $result = RgmApiCommon::getJsonResponse($request, $response, 406, $array);
+                    echo $result;
+                    return;
                 }
-                $result = RgmApiCommon::getJsonResponse($response, 406, $array);
-                echo $result;
-                return;
+            } else {
+                $body = null;
             }
             $authOk = false;
             $methodResponse = '';
@@ -394,16 +404,16 @@ class RgmApiCommon
                 if ($param->isDefaultValueAvailable()) {
                     $params[1][$paramName] = $param->getDefaultValue();
                 }
-                //second, header value takes precedence over default value
-                if ($header = $request->headers->get($paramName)) {
-                    $params[1][$paramName] = $header;
-                }
-                //third, parameter value takes precedence over header value
+                // second, parameter value takes precedence over header value
                 if ($var = $request->get($paramName)) {
                     $params[1][$paramName] = $var;
                 }
-                // finally, data value takes precedence over all other
-                if (isset($body[$paramName])) {
+                // Third, if form encoded, post params
+                if ($contentType === static::CT_FORM && $var = $request->post($paramName)) {
+                    $params[1][$paramName] = $var;
+                }
+                // finally, data value takes precedence over all other for JSON message
+                if ($body != null && isset($body[$paramName])) {
                     $params[1][$paramName] = $body[$paramName];
                 }
             }
@@ -435,7 +445,7 @@ class RgmApiCommon
             // if unknown or missing parameters found, exit with a http 417 error code
             if ($msg != '') {
                 $array = array('message' => $msg);
-                $result = static::getJsonResponse($response, 417, $array);
+                $result = static::getJsonResponse($request, $response, 417, $array);
                 echo $result;
                 return;
             }
@@ -449,7 +459,7 @@ class RgmApiCommon
                 $methodResponse = call_user_func_array(array($co, $methodName), $params[1]);
             }
 
-            static::constructResponse($response, $methodResponse, $authOk);
+            static::constructResponse($request, $response, $methodResponse, $authOk);
         })->via($httpMethod);
     }
 }
