@@ -18,7 +18,6 @@ RgmApiCommon::addRoute('POST', '/addCheckCommandParameterToServiceTemplate', 'ad
 RgmApiCommon::addRoute('POST', '/addCheckCommandParameterToServiceInHostTemplate', 'addCheckCommandParameterToServiceInHostTemplate', ACL_ADMIN);
 RgmApiCommon::addRoute('POST', '/modifyCheckCommandToHostTemplate', 'modifyCheckCommandToHostTemplate', ACL_ADMIN);
 RgmApiCommon::addRoute('POST', '/modifyCheckCommandToServiceTemplate', 'modifyCheckCommandToServiceTemplate', ACL_ADMIN);
-RgmApiCommon::addRoute('POST', '/deleteHostTemplateToHosts', 'deleteHostTemplateToHosts', ACL_ADMIN);
 RgmApiCommon::addRoute('POST', '/deleteServiceByHostTemplate', 'deleteServiceByHostTemplate', ACL_ADMIN);
 RgmApiCommon::addRoute('POST', '/deleteCustomArgumentsToHost', 'deleteCustomArgumentsToHost', ACL_ADMIN);
 RgmApiCommon::addRoute('POST', '/deleteCustomArgumentsToService', 'deleteCustomArgumentsToService', ACL_ADMIN);
@@ -59,6 +58,7 @@ RgmApiCommon::addRoute('DELETE', '/host/contact', 'deleteContactToHost', ACL_ADM
 RgmApiCommon::addRoute('POST', '/host/contact/group', 'addContactGroupToHost', ACL_ADMIN);
 RgmApiCommon::addRoute('DELETE', '/host/contact/group', 'deleteContactGroupToHost', ACL_ADMIN);
 RgmApiCommon::addRoute('POST', '/host/template', 'addHostTemplateToHost', ACL_ADMIN);
+RgmApiCommon::addRoute('DELETE', '/host/templates', 'deleteHostTemplateToHost', ACL_ADMIN);
 RgmApiCommon::addRoute('GET', '/hosts/down', 'getHostsDown', ACL_READONLY);
 
 // Hostgroup routes

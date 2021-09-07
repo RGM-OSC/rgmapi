@@ -4359,17 +4359,14 @@ class RgmApiMethods
                 $listAllHostsTemplate = NagiosHostTemplateInheritancePeer::doSelect($c);
 
                 foreach ($listAllHostsTemplate as $template) {
-
                     if ($template->getTargetTemplate() == $targetTemplate->getId()) {
                         $template->delete();
                         $find = true;
                     }
-
                 }
                 if (!$find) {
                     $error .= "This template " . $targetTemplate->getName() . " is not find for this host : " . $targetHost->getName() . "!";
                 } else {
-
                     $listAllHostsTemplate = NagiosHostTemplateInheritancePeer::doSelect($c);
                     if (sizeof($listAllHostsTemplate) == 0) {
                         $this->addHostTemplateToHost("GENERIC_HOST", $hostName);
