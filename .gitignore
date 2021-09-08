@@ -3,4 +3,5 @@ SOURCES_TAR/rgmapi-1.1/html/doxygen/html/**
 .vscode
 .vstags
 .scannerwork
+.idea
 

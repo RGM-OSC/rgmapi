@@ -1,7 +1,7 @@
 Summary:        API for the RGM suite.
 Name:           rgmapi
 Version:        1.2
-Release:        1.rgm
+Release:        4.rgm
 Source0:        %{name}.tar.gz
 Source1:        httpd-rgmapi.example.conf
 Group:          Applications/System
@@ -30,7 +30,6 @@ install -d -m0755 %{buildroot}%{rgm_docdir}/httpd
 install -T -D -m 0644 %{SOURCE1} %{buildroot}%{rgm_docdir}/httpd/httpd-rgmapi.example.conf
 cp -afv ./* %{buildroot}%{datadir}
 cd %{buildroot}%{datadir}
-doxygen %{buildroot}%{datadir}/Doxyfile
 rm -rf %{buildroot}%{datadir}/%{name}.spec
 
 
@@ -51,7 +50,17 @@ rm -rf %{buildroot}
 
 
 %changelog
-* Tue Jul 13 2021 Alex Rocher <arocjer@fr.scc.com> - 1.2-1.rgm
+* Fri Sep 03 2021 Alex Rocher <arocher@fr.scc.com> - 1.2-4.rgm
+- Add Swagger for RGMApi v2
+
+* Tue Aug 31 2021 Alex Rocher <arocher@fr.scc.com> - 1.2-3.rgm
+- Add RGMApi v2, route is /api/v2
+
+* Tue Aug 17 2021 Alex Rocher <arocher@fr.scc.com> - 1.2-2.rgm
+- Security: change hash MD5 to SHA512 for password
+- Code cleaning
+
+* Tue Jul 13 2021 Alex Rocher <arocher@fr.scc.com> - 1.2-1.rgm
 - bind SQL requests
 - Fix: RGMApi should only remove sessions with type 2 or 3
 
@@ -90,4 +99,4 @@ rm -rf %{buildroot}
 - Fix permission issue.
 
 * Wed Oct 25 2017 Lucas Salinas - 1.0-0
--Package for EyesOfNetwork API.
+- Package for EyesOfNetwork API.
