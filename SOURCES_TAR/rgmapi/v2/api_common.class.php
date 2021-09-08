@@ -47,9 +47,9 @@ class RgmApiCommon
     const CT_FORM = 'application/x-www-form-urlencoded';
     const CT_JSON = 'application/json';
 
-    const INSERT_TOKEN = 'INSERT INTO tokens (token, user_id, creation_epoch, validity_epoch, usage_count, usage_max_count, enabled) VALUES (?, ?, UNIX_TIMESTAMP(), ?, 0, ?, 1)';
+    const INSERT_TOKEN = 'INSERT INTO tokens (token, user_id, creation_epoch, validity_epoch, usage_count, usage_max_count, enabled, ip_source) VALUES (?, ?, UNIX_TIMESTAMP(), ?, 0, ?, 1, ?)';
 
-    const INC_TOKEN_COUNT = 'UPDATE tokens SET usage_count = usage_count + 1 WHERE TOKEN = ?';
+    const INC_TOKEN_COUNT = 'UPDATE tokens SET usage_count = usage_count + 1, last_epoch = UNIX_TIMESTAMP() WHERE token = ?';
 
     /**
      * validity_epoch = -1 : no limit in time
@@ -64,7 +64,11 @@ class RgmApiCommon
     private static function insertToken($token, $user_id, $validity_epoch, $usage_max_count = -1)
     {
         global $database_rgmweb;
-        RgmConnexion::sqlrequest($database_rgmweb, static::INSERT_TOKEN, false, array($token, $user_id, $validity_epoch, $usage_max_count));
+        $source_ip = null;
+        if (isset($_SERVER['REMOTE_ADDR'])) {
+            $source_ip = $_SERVER['REMOTE_ADDR'];
+        }
+        RgmConnexion::sqlrequest($database_rgmweb, static::INSERT_TOKEN, false, array($token, $user_id, $validity_epoch, $usage_max_count, $source_ip));
     }
 
     private static function incTokenUsageCount($token)
