@@ -17,6 +17,7 @@
 
 include_once('/srv/rgm/rgmweb/include/livestatus/Client.php');
 include_once('/srv/rgm/lilac/includes/config.inc');
+include_once('/srv/rgm/rgmweb/module/monitoring_ged/ged_functions.php');
 
 use Nagios\Livestatus\Client;
 
@@ -25,7 +26,6 @@ use Nagios\Livestatus\Client;
  */
 class RgmApiMethods
 {
-
     private $authUser;
 
     function __construct($username)
@@ -55,9 +55,10 @@ class RgmApiMethods
 
     /**
      * @brief  Exports Lilac configuration to Nagios config file
-     * @param  &$error  a string reference to notify on error
-     * @param  &$success a string reference to notify on success
-     * @param  $jobName the export job name as stored into Lilac export table
+     * @param string &$error a string reference to notify on error
+     * @param string &$success a string reference to notify on success
+     * @param string $jobName the export job name as stored into Lilac export table
+     * @throws PropelException
      */
     private function exportConfigurationToNagios(&$error = "", &$success = "", $jobName = "nagios")
     {
@@ -88,15 +89,14 @@ class RgmApiMethods
 
     /**
      * @brief  check a LiveStatus socket status
-     * @param  $type  socket type (unix or TCP)
-     * @param  $address target IP address
-     * @param  $port target TCP port
-     * @param  $path unix socket path
-     * @return  a file handle on the opened socket, or **false** if the connection failed
+     * @param string $type socket type (unix or TCP)
+     * @param string $address target IP address
+     * @param integer $port target TCP port
+     * @param string $path unix socket path
+     * @return  resource|boolean A file handle on the opened socket, or **false** if the connection failed
      */
     private function checkLiveStatusSocket($type, $address, $port, $path)
     {
-        $host = false;
         if ($type == "unix") {
             $socket_path_connexion = "unix://" . $path;
             $host = fsockopen($socket_path_connexion, $port, $errno, $errstr, 5);
@@ -108,9 +108,9 @@ class RgmApiMethods
 
     /**
      * @brief  a generic function to retrieve various Lilac objects information
-     * @param  $objectClass  a Lilac class object
-     * @param  $objectName    a specific name of the object name we want to retrieve
-     * @return  an array containing the object requested *or* a list of all objects of $objectClass
+     * @param object $objectClass a Lilac class object
+     * @param string $objectName a specific name of the object name we want to retrieve
+     * @return array|string An array containing the object requested *or* a list of all objects of $objectClass
      */
     private function getNagiosObject($objectClass, $objectName)
     {
@@ -137,8 +137,8 @@ class RgmApiMethods
 
     /**
      * @brief  returns a Lilac Host object for referenced hostname
-     * @param  $hostName  the Lilac HostName object to retrieve
-     * @return  an array that describes the hostname
+     * @param string $hostName the Lilac HostName object to retrieve
+     * @return array An array that describes the hostname
      */
     public function getHost($hostName)
     {
@@ -147,8 +147,8 @@ class RgmApiMethods
 
     /**
      * @brief  get HostTemplate details
-     * @param  $templateHostName  the HostTemplate name to look for
-     * @return  an array that describes the HostTemplate
+     * @param string $templateHostName the HostTemplate name to look for
+     * @return  array An array that describes the HostTemplate
      */
     public function getHostTemplate($templateHostName)
     {
@@ -157,8 +157,8 @@ class RgmApiMethods
 
     /**
      * @brief  get details for a specified Lilac HostGroup name
-     * @param  $hostGroupName the HostGroup name to describe
-     * @return  an array of HostGroup details
+     * @param string $hostGroupName the HostGroup name to describe
+     * @return  array An array of HostGroup details
      */
     public function getHostGroup($hostGroupName)
     {
@@ -168,9 +168,9 @@ class RgmApiMethods
     /**
      * @brief  get Lilac Contact Names
      * @details  returns a Lilac ContactName, or a **list** of ContactName
-     * @param  $contactName the Lilac ContactName to search, or **false** to
+     * @param string|boolean $contactName the Lilac ContactName to search, or **false** to
      *      list all ContactName (defaults to false)
-     * @return  a ContactName detail *or* a list of ContactName
+     * @return  array a ContactName detail *or* a list of ContactName
      */
     public function getContact($contactName = FALSE)
     {
@@ -180,9 +180,9 @@ class RgmApiMethods
     /**
      * @brief  get Lilac Contact Groups
      * @details  returns a Lilac ContactGroup, or a **list** of ContactGroup
-     * @param  $contactGroupName the Lilac ContactGroup to search, or **false** to
+     * @param string $contactGroupName the Lilac ContactGroup to search, or **false** to
      *      list all ContactName (defaults to false)
-     * @return  a ContactGroup detail *or* a list of ContactGroup
+     * @return  array a ContactGroup detail *or* a list of ContactGroup
      */
     public function getContactGroups($contactGroupName = FALSE)
     {
@@ -192,9 +192,9 @@ class RgmApiMethods
     /**
      * @brief  get Lilac Commands
      * @details  returns a Lilac Command, or a **list** of Commands
-     * @param  $commandName the Lilac Command to search, or **false** to
+     * @param string $commandName the Lilac Command to search, or **false** to
      *      list all Commands (defaults to false)
-     * @return  a Command detail *or* a list of Commands
+     * @return  array a Command detail *or* a list of Commands
      */
     public function getCommand($commandName)
     {
@@ -204,9 +204,9 @@ class RgmApiMethods
     /**
      * @brief  get Lilac ServiceTemplate
      * @details  returns a Lilac ServiceTemplate, or a **list** of ServiceTemplate
-     * @param  $commandName the Lilac ServiceTemplate to search, or **false** to
+     * @param string $templateName the Lilac ServiceTemplate to search, or **false** to
      *      list all ServiceTemplate (defaults to false)
-     * @return  a ServiceTemplate detail *or* a list of ServiceTemplate
+     * @return  array a ServiceTemplate detail *or* a list of ServiceTemplate
      */
     public function getServiceTemplate($templateName)
     {
@@ -216,9 +216,9 @@ class RgmApiMethods
     /**
      * @brief  get Lilac ServiceGroup
      * @details  returns a Lilac ServiceGroup, or a **list** of groups
-     * @param  $serviceGroupName the Lilac ServiceGroup to search, or **false** to
+     * @param string $serviceGroupName the Lilac ServiceGroup to search, or **false** to
      *      list all ServiceGroup (defaults to false)
-     * @return  a ServiceGroup detail *or* a list of ServiceGroup
+     * @return  array a ServiceGroup detail *or* a list of ServiceGroup
      */
     public function getServiceGroup($serviceGroupName)
     {
@@ -227,14 +227,14 @@ class RgmApiMethods
 
     /**
      * @brief  get a host list that belongs to specified Lilac HostTemplate
-     * @param  $templateHostName  The HostTemplate name to look for
-     * @return  a list of hostnames
+     * @param string $templateHostName The HostTemplate name to look for
+     * @return array|string a list of hostnames
      */
     public function getHostsBytemplate($templateHostName)
     {
         $nhtp = new NagiosHostTemplatePeer;
         // Find host template
-        $template_host = $nhtp->getByName($templateHostName);
+        $template_host = $nhtp::getByName($templateHostName);
         if (!$template_host) {
             return "Host Template $templateHostName not found\n";
         } else {
@@ -253,14 +253,14 @@ class RgmApiMethods
 
     /**
      * @brief  get a host list that belongs to specified Lilac HostGroup
-     * @param  $hostGroupName  The HostGroup name to look for
-     * @return  a list of hostnames
+     * @param string $hostGroupName The HostGroup name to look for
+     * @return array|string a list of hostnames
      */
     public function getHostsByHostGroup($hostGroupName)
     {
         $nhgp = new NagiosHostgroupPeer;
         //Find HostGroup
-        $hostGroup = $nhgp->getByName($hostGroupName);
+        $hostGroup = $nhgp::getByName($hostGroupName);
         if (!$hostGroup) {
             return "HostGroup named $hostGroupName not found\n";
         } else {
@@ -279,13 +279,14 @@ class RgmApiMethods
 
     /**
      * @brief  get all services attached to a specified Lilac Host
-     * @param  $hostName  The Host name to query
-     * @return  an array containing a list of services attached to host
+     * @param string $hostName The Host name to query
+     * @return  array|string An array containing a list of services attached to host
+     * @throws PropelException
      */
     public function getServicesByHost($hostName)
     {
         $nhp = new NagiosHostPeer();
-        $host = $nhp->getByName($hostName);
+        $host = $nhp::getByName($hostName);
         if (!$host) {
             return "No host named $hostName.\n";
         } else {
@@ -305,13 +306,14 @@ class RgmApiMethods
 
     /**
      * @brief  get all services attached to a specified Lilac HostTemplate
-     * @param  $hostName  The HostTemplate to query
-     * @return  an array containing a list of services attached to HostTemplate
+     * @param string $templateHostName The HostTemplate to query
+     * @return  array|string An array containing a list of services attached to HostTemplate
+     * @throws PropelException
      */
     public function getServicesByHostTemplate($templateHostName)
     {
         $nhtp = new NagiosHostTemplatePeer();
-        $templateHost = $nhtp->getByName($templateHostName);
+        $templateHost = $nhtp::getByName($templateHostName);
         if (!$templateHost) {
             return "No hostTemplate named $templateHostName.\n";
         } else {
@@ -352,7 +354,7 @@ class RgmApiMethods
 
     /**
      * @brief  Retrieve Nagios hosts currently down from LiveStatus
-     * @return  an array containing a list of down hosts
+     * @return  array An array containing a list of down hosts
      */
     public function getHostDown()
     {
@@ -401,7 +403,7 @@ class RgmApiMethods
 
     /**
      * @brief  Retrieve Nagios services currently down from LiveStatus
-     * @return  an array containing a list of down services
+     * @return  array An array containing a list of down services
      */
     /* RGMWEB-LIVESTATUS - Get Services Down*/
     public function getServicesDown()
@@ -451,13 +453,12 @@ class RgmApiMethods
 
     /**
      * @brief  Retrieve Nagios "user macros" from Lilac
-     * @return  an array containing a the user macros
+     * @return  array An array containing a the user macros
      */
     public function getResources()
     {
         $error = "";
         $success = "";
-        $code = 0;
         try {
             $resourceCfg = NagiosResourcePeer::doSelectOne(new Criteria());
             if (!$resourceCfg) {
@@ -476,14 +477,14 @@ class RgmApiMethods
 
     /**
      * @brief  Create a Lilac ContactName object
-     * @param  $contactName a valid Lilac ContactName. Must be unique
-     * @param  $contactAlias a string  that contains the contact desciption. Defaults to  @b "description"
-     * @param  $contactMail a string  that contains the contact email address. Can't be **null**
-     * @param  $contactPager a string  that contains the contact *pager* number. Defaults to @b "" (empty string)
-     * @param  $contactGroup a valid Lilac ContactGroup object. Defaults to @b "" (empty string)
-     * @param  $serviceNotificationCommand a valid Lilac Command objet used as command for Nagios service notifier. Default to  @b "rgm_service_notifier"
-     * @param  $hostNotificationCommand a valid Lilac Command objet used as command for Nagios host notifier. Default to  @b "rgm_host_notifier"
-     * @param  $options a list array of optional flags. currently supported flags are:
+     * @param string $contactName a valid Lilac ContactName. Must be unique
+     * @param string $contactAlias a string  that contains the contact desciption. Defaults to  @b "description"
+     * @param string $contactMail a string  that contains the contact email address. Can't be **null**
+     * @param string $contactPager a string  that contains the contact *pager* number. Defaults to @b "" (empty string)
+     * @param string $contactGroup a valid Lilac ContactGroup object. Defaults to @b "" (empty string)
+     * @param string $serviceNotificationCommand a valid Lilac Command objet used as command for Nagios service notifier. Default to  @b "rgm_service_notifier"
+     * @param string $hostNotificationCommand a valid Lilac Command objet used as command for Nagios host notifier. Default to  @b "rgm_host_notifier"
+     * @param string $options a list array of optional flags. currently supported flags are:
      *      | flag |
      *      |------|
      *      | host_notification_period  |
@@ -503,10 +504,11 @@ class RgmApiMethods
      *      | retain_nonstatus_information  |
      *      | host_notifications_enabled  |
      *      | service_notifications_enabled  |
-     * @param  $exportConfiguration force the execution of Lilac exporter after Contact creation. Defaults to **FALSE**
-     * @return  an array with the return status of the call
+     * @param  boolean s$exportConfiguration force the execution of Lilac exporter after Contact creation. Defaults to **FALSE**
+     * @return  array An array with the return status of the call
+     * @throws PropelException
      */
-    public function createContact($contactName, $contactAlias = "description", $contactMail,
+    public function createContact($contactName, $contactAlias, $contactMail,
                                   $contactPager = "", $contactGroup = "", $serviceNotificationCommand = "rgm_service_notifier",
                                   $hostNotificationCommand = "rgm_host_notifier", $options = NULL,
                                   $exportConfiguration = FALSE)
@@ -620,7 +622,7 @@ class RgmApiMethods
             }
 
             if (!empty($contactGroup)) {
-                $ncg = NagiosContactGroupPeer::getByName($contactGroup);
+                $ncg = (new NagiosContactGroupPeer)->getByName($contactGroup);
                 if ($ncg) {
                     $contactGroupMember = new NagiosContactGroupMember();
                     $contactGroupMember->setContact($tempContact->getId());
@@ -641,20 +643,20 @@ class RgmApiMethods
 
     /**
      * @brief  Create a Nagios Downtime object on selected Lilac host
-     * @param  $hostName a string containing Lilac HostName. Can't be **null**
-     * @param  $comment a string that describes a comment for putting the host down. Can't be **null**
-     * @param  $startTime a string that represents the starting date for the downtime. It must
+     * @param string $hostName a string containing Lilac HostName. Can't be **null**
+     * @param string $comment a string that describes a comment for putting the host down. Can't be **null**
+     * @param string $startTime a string that represents the starting date for the downtime. It must
      *      follow a date representation supported by the PHP DateTime class.
      *      see. https://www.php.net/manual/fr/class.datetime.php
      *      Can't be **null**
-     * @param  $endTime a string that represents the ending date for the downtime. It must
+     * @param string $endTime a string that represents the ending date for the downtime. It must
      *      follow a date representation supported by the PHP DateTime class.
      *      see. https://www.php.net/manual/fr/class.datetime.php
      *      Can't be **null**
-     * @param  $user Lilac ContactName responsible for this downtime. Defaults to RGMAPI session user
-     * @param  $fixed defaults to **1**
-     * @param  $duration defaults to **1000**
-     * @param  $childHostAction defaults to **FALSE**
+     * @param string $user Lilac ContactName responsible for this downtime. Defaults to RGMAPI session user
+     * @param integer $fixed defaults to **1**
+     * @param integer $duration defaults to **1000**
+     * @param boolean $childHostAction defaults to **FALSE**
      */
     public function createHostDowntime($hostName, $comment, $startTime, $endTime, $user = '',
                                        $fixed = 1, $duration = 1000, $childHostAction = FALSE)
@@ -712,20 +714,20 @@ class RgmApiMethods
 
     /**
      * @brief  Create a Nagios Downtime object on selected Lilac host
-     * @param  $hostName a string containing Lilac HostName. Can't be **null**
-     * @param  $serviceName a string containing Lilac ServiceName. Can't be **null**
-     * @param  $comment a string that describes a comment for putting the host down. Can't be **null**
-     * @param  $startTime a string that represents the starting date for the downtime. It must
+     * @param string $hostName a string containing Lilac HostName. Can't be **null**
+     * @param string $serviceName a string containing Lilac ServiceName. Can't be **null**
+     * @param string $comment a string that describes a comment for putting the host down. Can't be **null**
+     * @param string $startTime a string that represents the starting date for the downtime. It must
      *      follow a date representation supported by the PHP DateTime class.
      *      see. https://www.php.net/manual/fr/class.datetime.php
      *      Can't be **null**
-     * @param  $endTime a string that represents the ending date for the downtime. It must
+     * @param string $endTime a string that represents the ending date for the downtime. It must
      *      follow a date representation supported by the PHP DateTime class.
      *      see. https://www.php.net/manual/fr/class.datetime.php
      *      Can't be **null**
-     * @param  $user Lilac ContactName responsible for this downtime. Defaults to RGMAPI session user
-     * @param  $fixed defaults to **1**
-     * @param  $duration defaults to **1000**
+     * @param string $user Lilac ContactName responsible for this downtime. Defaults to RGMAPI session user
+     * @param integer $fixed defaults to **1**
+     * @param integer $duration defaults to **1000**
      */
     public function createServiceDowntime($hostName, $serviceName, $comment, $startTime,
                                           $endTime, $user = '', $fixed = 1, $duration = 1000)
@@ -789,17 +791,17 @@ class RgmApiMethods
 
     /**
      * @brief  Create a Lilac Host object
-     * @param  $templateHostName a string of a valid Lilac HostTemplate object. Default to @b "GENERIC_HOST"
-     * @param  $hostName a string of a *unique* hostname. Can't be **null**.
-     * @param  $hostIp a string of the IP address of the host. Can be a CIDR IP
+     * @param string $templateHostName a string of a valid Lilac HostTemplate object. Default to @b "GENERIC_HOST"
+     * @param string $hostName a string of a *unique* hostname. Can't be **null**.
+     * @param string $hostIp a string of the IP address of the host. Can be a CIDR IP
      *      address (**x.x.x.x**) *or* a FQDN hostname (**host.domain**)
-     * @param  $hostAlias a string containing a *alias* or a *description* of the host. Defaults to @b "" (empty string)
-     * @param  $contactName an optional Lilac ContactName associated with this host. Defaults to **NULL**
-     * @param  $contactGroupName = an optional Lilac ContactGroupName associated with this host. Defaults to **NULL**
-     * @param  $exportConfiguration force the execution of Lilac exporter after Contact creation. Defaults to **FALSE**
-     * @return  an array with the return status of the call
+     * @param string $hostAlias a string containing a *alias* or a *description* of the host. Defaults to @b "" (empty string)
+     * @param string $contactName an optional Lilac ContactName associated with this host. Defaults to **NULL**
+     * @param string $contactGroupName = an optional Lilac ContactGroupName associated with this host. Defaults to **NULL**
+     * @param boolean $exportConfiguration force the execution of Lilac exporter after Contact creation. Defaults to **FALSE**
+     * @return  array An array with the return status of the call
      */
-    public function createHost($templateHostName = "GENERIC_HOST", $hostName, $hostIp,
+    public function createHost($templateHostName, $hostName, $hostIp,
                                $hostAlias = "", $contactName = NULL, $contactGroupName = NULL,
                                $exportConfiguration = FALSE)
     {
@@ -808,14 +810,14 @@ class RgmApiMethods
         $code = 0;
         $nhp = new NagiosHostPeer;
         // Find host
-        $host = $nhp->getByName($hostName);
+        $host = $nhp::getByName($hostName);
         if ($host) {
             $code = 1;
             $error .= "Host $hostName already exists\n";
         }
         $nhtp = new NagiosHostTemplatePeer;
         // Find host template
-        $template_host = $nhtp->getByName($templateHostName);
+        $template_host = $nhtp::getByName($templateHostName);
         if (!$template_host) {
             $code = 1;
             $error .= "Host Template $templateHostName not found\n";
@@ -862,11 +864,13 @@ class RgmApiMethods
 
     /**
      * @brief  Create a Lilac HostTemplate object
-     * @param  $templateHostName a string of a *unique* HostTemplate name. Can't be **null**.
-     * @param  $templateHostDescription a string for a HostTemplate description. Defaults to @ "" (empty string)
-     * @param  $createHostgroup defaults to TRUE
-     * @param  $exportConfiguration force the execution of Lilac exporter after Contact creation. Defaults to **FALSE**
+     * @param string $templateHostName a string of a *unique* HostTemplate name. Can't be **null**.
+     * @param string $templateHostDescription a string for a HostTemplate description. Defaults to @ "" (empty string)
+     * @param boolean $createHostgroup defaults to TRUE
+     * @param boolean $exportConfiguration force the execution of Lilac exporter after Contact creation. Defaults to **FALSE**
      * @todo why the hell create a hostgroup with the name of the host template ??? should be smarter to specify a hostgroup name (and createit if it doesn't exists...)
+     * @throws PropelException
+     * @throws PropelException
      */
     /* LILAC - Create Host Template */
     public function createHostTemplate($templateHostName, $templateHostDescription = "",
@@ -879,7 +883,7 @@ class RgmApiMethods
 
         // Check for pre-existing host template with same name
         $nhtp = new NagiosHostTemplatePeer;
-        $template_host = $nhtp->getByName($templateHostName);
+        $template_host = $nhtp::getByName($templateHostName);
         if ($template_host) {
             $code = 1;
             $error .= "A host template with that name already exists!\n";
@@ -896,7 +900,7 @@ class RgmApiMethods
             $template->save();
             $success .= "Host template " . $templateHostName . " created\n";
             // Add host template inheritance ("GENERIC_HOST")
-            $targetTemplate = $nhtp->getByName("GENERIC_HOST");
+            $targetTemplate = $nhtp::getByName("GENERIC_HOST");
             if (!$targetTemplate) {
                 $code = 1;
                 $error .= "The target template 'GENERIC_HOST' does not exit\n";
@@ -916,7 +920,7 @@ class RgmApiMethods
                 // Create Host Group with Host Template name if not exists
                 if ($lilac->hostgroup_exists($templateHostName)) {
                     $nhgp = new NagiosHostgroupPeer;
-                    $hostGroup = $nhgp->getByName($templateHostName);
+                    $hostGroup = $nhgp::getByName($templateHostName);
                 } else {
                     $hostGroup = $this->createHostGroup($templateHostName, $error, $success);
                     // $hostGroup = $nhgp->getByName( $templateHostName );
@@ -938,9 +942,11 @@ class RgmApiMethods
 
     /**
      * @brief  Create a Lilac HostGroup object
-     * @param  $hostGroupName a string of a *unique* HostGroup name. Can't be **null**.
-     * @param  $description a string description for HostGroup. Defaults to @b "host group"
-     * @param  $exportConfiguration force the execution of Lilac exporter after Contact creation. Defaults to **FALSE**
+     * @param string $hostGroupName a string of a *unique* HostGroup name. Can't be **null**.
+     * @param string $description a string description for HostGroup. Defaults to @b "host group"
+     * @param boolean $exportConfiguration force the execution of Lilac exporter after Contact creation. Defaults to **FALSE**
+     * @throws PropelException
+     * @throws PropelException
      */
     public function createHostGroup($hostGroupName, $description = "host group", $exportConfiguration = FALSE)
     {
@@ -948,7 +954,6 @@ class RgmApiMethods
         $error = "";
         $success = "";
         $code = 0;
-        $hostGroup = NULL;
 
         // Check for pre-existing contact with same name
         if ($lilac->hostgroup_exists($hostGroupName)) {
@@ -977,9 +982,11 @@ class RgmApiMethods
 
     /**
      * @brief  Create a Lilac ServiceTemplate object
-     * @param  $templateServiceName a string of a *unique* ServiceTemplate name. Can't be **null**.
-     * @param  $templateDescription a string description for ServiceTemplate. Defaults to @b "" (empty string)
-     * @param  $exportConfiguration force the execution of Lilac exporter after Contact creation. Defaults to **FALSE**
+     * @param string $templateServiceName a string of a *unique* ServiceTemplate name. Can't be **null**.
+     * @param string $templateDescription a string description for ServiceTemplate. Defaults to @b "" (empty string)
+     * @param boolean $exportConfiguration force the execution of Lilac exporter after Contact creation. Defaults to **FALSE**
+     * @throws PropelException
+     * @throws PropelException
      */
     public function createServiceTemplate($templateServiceName, $templateDescription = "", $exportConfiguration = FALSE)
     {
@@ -1007,16 +1014,15 @@ class RgmApiMethods
 
     /**
      * @brief  Create a Lilac Command object
-     * @param  $commandName a string of a *unique* ServiceTemplate name. Can't be **null**.
-     * @param  $commandLine a string description for ServiceTemplate. Defaults to @b "" (empty string)
-     * @param  $commandDescription
+     * @param string $commandName a string of a *unique* ServiceTemplate name. Can't be **null**.
+     * @param string $commandLine a string description for ServiceTemplate. Defaults to @b "" (empty string)
+     * @param string $commandDescription
      */
     public function createCommand($commandName, $commandLine, $commandDescription = "")
     {
         $error = "";
         $success = "";
         $code = 0;
-        $result = array();
         try {
             $ncp = new NagiosCommandPeer;
             $targetCommand = $ncp->getByName($commandName);
@@ -1050,11 +1056,15 @@ class RgmApiMethods
 
     /**
      * @brief  Create a Lilac Contact (user) object
-     * @param  $commandName a string of a *unique* ServiceTemplate name. Can't be **null**.
-     * @param  $commandLine a string description for ServiceTemplate. Defaults to @b "" (empty string)
-     * @param  $commandDescription
+     * @param string $userName
+     * @param string $userMail
+     * @param bool $admin
+     * @param string $filterName
+     * @param string $filterValue
+     * @param bool $exportConfiguration
+     * @return string
+     * @throws PropelException
      */
-    /* RGMWEB - Create User */
     public function createUser($userName, $userMail, $admin = false, $filterName = "", $filterValue = "", $exportConfiguration = FALSE)
     {
         //Lower case
@@ -1073,10 +1083,11 @@ class RgmApiMethods
             //admins group
             $userGroup = 1;
             $userDescr = "admin user";
+            $createdUserLimitation = 0;
         } else {
             $userDescr = "limited user";
+            $createdUserLimitation = 1;
         }
-        $createdUserLimitation = !($admin);
         // RGMWEB - User creation
         $user = insert_user($userName, $userDescr, $userGroup, $userPassword1, $userPassword2, $userType, "", $userMail, $createdUserLimitation, $message);
 
@@ -1139,7 +1150,7 @@ class RgmApiMethods
             $hostAlias = (!isset($host->hostAlias) ? NULL : $host->hostAlias);
             $contactName = (!isset($host->contactName) ? $contactName = NULL : $host->contactName);
             $contactGroupName = (!isset($host->contactGroupName) ? $contactGroupName = NULL : $host->contactGroupName);
-            $this->createHost($host->$templateHostName, $host->hostName, $host->hostIp, $hostAlias, $contactName, $contactGroupName, FALSE);
+            $this->createHost($host->$templateHostName, $host->hostName, $host->hostIp, $hostAlias, $contactName, $contactGroupName, $exportConfiguration);
         }
     }
 
@@ -1197,7 +1208,7 @@ class RgmApiMethods
             $contacts = (!isset($obj->contacts) ? NULL : $obj->contacts);
             $contactsGroup = (!isset($obj->contactsGroup) ? NULL : $obj->contactsGroup);
             $checkCommandParameters = (!isset($obj->checkCommandParameters) ? NULL : $obj->checkCommandParameters);
-            $result = $this->createServiceTemplate($obj->templateName, $templateDescription, $servicesGroup, $contacts, $contactsGroup, $obj->checkCommand, $checkCommandParameters, $templatesToInherit, $exportConfiguration);
+            $result = $this->createServiceTemplate($obj->templateName, $templateDescription);
             if ($result["code"] > 0) {
                 $error .= " | " . $result["description"];
             } else {
@@ -1207,7 +1218,7 @@ class RgmApiMethods
 
         return $this->getLogs($error, $succes);
     }
-########################################## ADD
+
     /* LILAC - Add Custom Argument to a host */
     public function addCustomArgumentsToHost($hostName, $customArguments)
     {
@@ -1216,7 +1227,7 @@ class RgmApiMethods
         $code = 0;
         $changed = 0;
         $nhp = new NagiosHostPeer;
-        $host = $nhp->getByName($hostName);
+        $host = $nhp::getByName($hostName);
         // Find host
         if (!$host) {
             $error .= "Host :  $hostName not found\n";
@@ -1259,7 +1270,7 @@ class RgmApiMethods
         $code = 0;
         $changed = 0;
         $nhtp = new NagiosHostTemplatePeer;
-        $templateHost = $nhtp->getByName($templateHostName);
+        $templateHost = $nhtp::getByName($templateHostName);
         // Find host
         if (!$templateHost) {
             $error .= "Template Host :  $templateHostName not found\n";
@@ -1302,7 +1313,7 @@ class RgmApiMethods
         $code = 0;
         $changed = 0;
         $nstp = new NagiosServiceTemplatePeer;
-        $templateService = $nstp->getByName($templateServiceName);
+        $templateService = $nstp::getByName($templateServiceName);
         // Find host
         if (!$templateService) {
             $error .= "Template Service:  $templateServiceName not found\n";
@@ -1345,7 +1356,7 @@ class RgmApiMethods
         $code = 0;
         $changed = 0;
         $nsp = new NagiosServicePeer;
-        $service = $nsp->getByHostAndDescription($hostName, $serviceName);
+        $service = $nsp::getByHostAndDescription($hostName, $serviceName);
         // Find host
         if (!$service) {
             $error .= "Service:  $serviceName not found\n";
@@ -1395,7 +1406,7 @@ class RgmApiMethods
         }
 
         $nhp = new NagiosHostPeer;
-        $host = $nhp->getByName($hostName);
+        $host = $nhp::getByName($hostName);
         if (!$host) {
             $error .= "Host Template $hostName not found\n";
         }
@@ -1440,14 +1451,13 @@ class RgmApiMethods
         $nstp = new NagiosServiceTemplatePeer();
         // Find host template
 
-        $template_service = $nstp->getByName($templateServiceName);
+        $template_service = $nstp::getByName($templateServiceName);
         if (!$template_service) {
             $error .= "Service Template $templateServiceName not found\n";
         }
 
         if (empty($error)) {
             //We prepared the list of existing parameters in the service
-            $parameter_list = array();
             $tempListParam = [];
             $c = new Criteria();
             $c->add(NagiosServiceCheckCommandParameterPeer::TEMPLATE, $template_service->getId());
@@ -1458,7 +1468,6 @@ class RgmApiMethods
                 array_push($tempListParam, $paramObject->getParameter());
             }
             foreach ($parameters as $paramName) {
-
                 if (!in_array($paramName, $tempListParam)) {
                     $param = new NagiosServiceCheckCommandParameter();
                     $param->setNagiosServiceTemplate($template_service);
@@ -1468,7 +1477,6 @@ class RgmApiMethods
                 }
             }
         }
-
 
         if ($changed > 0) {
             $success .= "$templateServiceName has been updated.\n";
@@ -1490,14 +1498,13 @@ class RgmApiMethods
         $changed = 0;
 
         $nsp = new NagiosServicePeer();
-        $service = $nsp->getByHostAndDescription($hostName, $serviceName);
+        $service = $nsp::getByHostAndDescription($hostName, $serviceName);
         if (!$service) {
             $code = 1;
             $error .= "Service $serviceName or $hostName not found\n";
         }
         if (empty($error)) {
             //We prepared the list of existing parameters in the service
-            $parameter_list = array();
             $tempListParam = [];
             $c = new Criteria();
             $c->add(NagiosServiceCheckCommandParameterPeer::SERVICE, $service->getId());
@@ -1540,14 +1547,13 @@ class RgmApiMethods
         $changed = 0;
 
         $nsp = new NagiosServicePeer();
-        $service = $nsp->getByHostTemplateAndDescription($hostTemplateName, $serviceName);
+        $service = $nsp::getByHostTemplateAndDescription($hostTemplateName, $serviceName);
         if (!$service) {
             $code = 1;
             $error .= "Service $serviceName or $hostTemplateName not found\n";
         }
         if (empty($error)) {
             //We prepared the list of existing parameters in the service
-            $parameter_list = array();
             $tempListParam = [];
             $c = new Criteria();
             $c->add(NagiosServiceCheckCommandParameterPeer::SERVICE, $service->getId());
@@ -1568,7 +1574,6 @@ class RgmApiMethods
                 }
             }
         }
-
 
         if ($changed > 0) {
             $success .= "$serviceName has been updated.\n";
@@ -1591,14 +1596,13 @@ class RgmApiMethods
         $nhtp = new NagiosHostTemplatePeer();
         // Find host template
 
-        $template_host = $nhtp->getByName($templateHostName);
+        $template_host = $nhtp::getByName($templateHostName);
         if (!$template_host) {
             $error .= "Host Template $templateHostName not found\n";
         }
 
         if (empty($error)) {
             //We prepared the list of existing parameters in the host
-            $parameter_list = array();
             $tempListParam = [];
             $c = new Criteria();
             $c->add(NagiosHostCheckCommandParameterPeer::HOST_TEMPLATE, $template_host->getId());
@@ -1620,7 +1624,6 @@ class RgmApiMethods
             }
         }
 
-
         if ($changed > 0) {
             $success .= "$templateHostName has been updated.\n";
         } else {
@@ -1640,7 +1643,7 @@ class RgmApiMethods
         $code = 0;
 
         $nhp = new NagiosHostPeer;
-        $host = $nhp->getByName($hostName);
+        $host = $nhp::getByName($hostName);
 
         if (!$host) {
             $error .= "Host $hostName not found\n";
@@ -1694,7 +1697,7 @@ class RgmApiMethods
         $code = 0;
 
         $nhp = new NagiosHostPeer;
-        $host = $nhp->getByName($hostName);
+        $host = $nhp::getByName($hostName);
 
         if (!$host) {
             $error .= "Host $hostName not found\n";
@@ -1702,11 +1705,10 @@ class RgmApiMethods
 
         $nhtp = new NagiosHostTemplatePeer;
         // Find host template
-        $template_host = $nhtp->getByName($templateHostName);
+        $template_host = $nhtp::getByName($templateHostName);
         if (!$template_host) {
             $error .= "Host Template $templateHostName not found\n";
         }
-
 
         // We need to get the count of templates already inherited
         if ($host) {
@@ -1760,11 +1762,10 @@ class RgmApiMethods
 
         $nhtp = new NagiosHostTemplatePeer;
         // Find host template
-        $template_host = $nhtp->getByName($templateHostName);
+        $template_host = $nhtp::getByName($templateHostName);
         if (!$template_host) {
             $error .= "Host Template $templateHostName not found\n";
         }
-
 
         if (empty($error)) {
             $c = new Criteria();
@@ -1810,7 +1811,7 @@ class RgmApiMethods
 
         $nhtp = new NagiosHostTemplatePeer;
         // Find host template
-        $template_host = $nhtp->getByName($templateHostName);
+        $template_host = $nhtp::getByName($templateHostName);
         if (!$template_host) {
             $error .= "Host Template $templateHostName not found\n";
         }
@@ -1847,13 +1848,12 @@ class RgmApiMethods
     /* LILAC - create Service to Host template*/
     public function createServiceToHostTemplate($hostTemplateName, $service, $exportConfiguration = FALSE)
     {
-
         $error = "";
         $success = "";
         $code = 0;
 
         $nsp = new NagiosHostTemplatePeer;
-        $template = $nsp->getByName($hostTemplateName);
+        $template = $nsp::getByName($hostTemplateName);
 
         if (!$template) {
             $code = 1;
@@ -1865,7 +1865,7 @@ class RgmApiMethods
         //Test if the parent templates exist
         if (isset($service->inheritance)) {
             $templateName = $service->inheritance;
-            $serviceTemplate = $nstp->getByName($templateName);
+            $serviceTemplate = $nstp::getByName($templateName);
             if (!$serviceTemplate) {
                 $code = 1;
                 $error .= "Service Template $templateName not found\n";
@@ -1875,7 +1875,6 @@ class RgmApiMethods
         if (empty($error)) {
             try {
                 // service interface
-
                 $tempService = new NagiosService();
                 $tempService->setDescription($service->name);
                 $tempService->setHostTemplate($template->getId());
@@ -1890,7 +1889,7 @@ class RgmApiMethods
                 }
 
                 if (isset($service->command)) {
-                    $cmd = NagiosCommandPeer::getByName($service->command);
+                    $cmd = (new NagiosCommandPeer)->getByName($service->command);
                     if ($cmd) {
                         $tempService->setCheckCommand($cmd->getId());
                         $tempService->save();
@@ -1910,7 +1909,6 @@ class RgmApiMethods
                     }
                 }
 
-
                 // Export
                 if ($exportConfiguration) {
                     $this->exportConfigurationToNagios($error, $success);
@@ -1924,20 +1922,18 @@ class RgmApiMethods
         $logs = $this->getLogs($error, $success);
 
         return array("code" => $code, "description" => $logs);
-
     }
 
     /* LILAC - create Service to Host*/
     public function createServiceToHost($hostName, $service, $exportConfiguration = FALSE)
     {
-
         $error = "";
         $success = "";
         $code = 0;
 
         $nsp = new NagiosHostPeer;
 
-        $host = $nsp->getByName($hostName);
+        $host = $nsp::getByName($hostName);
 
         if (!$host) {
             $code = 1;
@@ -1948,7 +1944,7 @@ class RgmApiMethods
         //Test if the parent templates are given and set exist
         if (isset($service['inheritance'])) {
             $templateName = $service['inheritance'];
-            $template = $nstp->getByName($templateName);
+            $template = $nstp::getByName($templateName);
             if (!$template) {
                 $code = 1;
                 $error .= "Service Template $templateName not found\n";
@@ -1972,7 +1968,7 @@ class RgmApiMethods
                 }
 
                 if (isset($service['command'])) {
-                    $cmd = NagiosCommandPeer::getByName($service['command']);
+                    $cmd = (new NagiosCommandPeer)->getByName($service['command']);
                     if ($cmd) {
                         $tempService->setCheckCommand($cmd->getId());
                         $tempService->save();
@@ -1990,9 +1986,7 @@ class RgmApiMethods
                             $success .= "Command Parameter " . $params . " added to $service[name]\n";
                         }
                     }
-
                 }
-
 
                 // Export
                 if ($exportConfiguration) {
@@ -2007,14 +2001,11 @@ class RgmApiMethods
         $logs = $this->getLogs($error, $success);
 
         return array("code" => $code, "description" => $logs);
-
     }
 
     /* LILAC - addEventBroker */
     public function addEventBroker($broker, $exportConfiguration = FALSE)
     {
-
-        global $lilac;
         $error = "";
         $success = "";
 
@@ -2052,7 +2043,7 @@ class RgmApiMethods
 
         $nhtp = new NagiosHostTemplatePeer;
         // Find host template
-        $template_host = $nhtp->getByName($templateHostName);
+        $template_host = $nhtp::getByName($templateHostName);
         if (!$template_host) {
             $error .= "Host Template $templateHostName not found\n";
         }
@@ -2086,7 +2077,7 @@ class RgmApiMethods
 
         $nhp = new NagiosHostPeer;
         // Find host
-        $host = $nhp->getByName($hostName);
+        $host = $nhp::getByName($hostName);
         if (!$host) {
             $error .= "Host $hostName not found\n";
         }
@@ -2120,7 +2111,7 @@ class RgmApiMethods
 
         $nhtp = new NagiosHostTemplatePeer;
         // Find host template
-        $template_host = $nhtp->getByName($templateHostName);
+        $template_host = $nhtp::getByName($templateHostName);
         if (!$template_host) {
             $error .= "Host Template $templateHostName not found\n";
         }
@@ -2154,13 +2145,12 @@ class RgmApiMethods
 
         $nstp = new NagiosServiceTemplatePeer;
         // Find host template
-        $template_service = $nstp->getByName($templateServiceName);
+        $template_service = $nstp::getByName($templateServiceName);
         if (!$template_service) {
             $error .= "Service Template $templateServiceName not found\n";
         }
 
         if (empty($error)) {
-
             if ($template_service->addServicegroupByName($serviceGroupName)) {
                 $success .= "Service Group " . $serviceGroupName . " added to service template " . $templateServiceName . "\n";
                 if ($exportConfiguration) {
@@ -2187,7 +2177,7 @@ class RgmApiMethods
         $code = 0;
 
         $nsp = new NagiosServicePeer();
-        $service = $nsp->getByHostAndDescription($hostName, $serviceName);
+        $service = $nsp::getByHostAndDescription($hostName, $serviceName);
         if (!$service) {
             $code = 1;
             $error .= "Service $serviceName or $hostName not found\n";
@@ -2220,7 +2210,7 @@ class RgmApiMethods
         $code = 0;
 
         $nsp = new NagiosServicePeer();
-        $service = $nsp->getByHostTemplateAndDescription($hostTemplateName, $serviceName);
+        $service = $nsp::getByHostTemplateAndDescription($hostTemplateName, $serviceName);
         if (!$service) {
             $code = 1;
             $error .= "Service $serviceName or $hostTemplateName not found\n";
@@ -2254,7 +2244,7 @@ class RgmApiMethods
 
         $nstp = new NagiosServiceTemplatePeer;
         // Find host template
-        $template_service = $nstp->getByName($templateServiceName);
+        $template_service = $nstp::getByName($templateServiceName);
         if (!$template_service) {
             $error .= "Service Template $templateServiceName not found\n";
         }
@@ -2288,7 +2278,7 @@ class RgmApiMethods
 
         $nstp = new NagiosServiceTemplatePeer;
         // Find host template
-        $template_service = $nstp->getByName($templateServiceName);
+        $template_service = $nstp::getByName($templateServiceName);
         if (!$template_service) {
             $error .= "Service Template $templateServiceName not found\n";
         }
@@ -2320,10 +2310,10 @@ class RgmApiMethods
         $success = "";
         $code = 0;
         try {
-            $contact = NagiosContactPeer::getByName($contactName);
+            $contact = (new NagiosContactPeer)->getByName($contactName);
             // Find host template
             if (!empty($contact)) {
-                $ncg = NagiosContactGroupPeer::getByName($contactGroupName);
+                $ncg = (new NagiosContactGroupPeer)->getByName($contactGroupName);
                 if (!empty($ncg)) {
                     $c = new Criteria();
                     $c->add(NagiosContactGroupMemberPeer::CONTACT, $contact->getId());
@@ -2342,7 +2332,6 @@ class RgmApiMethods
                             $this->exportConfigurationToNagios($error, $success);
                         }
                     }
-
                 } else {
                     $code = 1;
                     $error .= "$contactGroupName don't exist. ";
@@ -2368,11 +2357,10 @@ class RgmApiMethods
         $success = "";
         $code = 0;
         try {
-            $contact = NagiosContactPeer::getByName($contactName);
+            $contact = (new NagiosContactPeer)->getByName($contactName);
             // Find host template
             if (!empty($contact)) {
-
-                $commandService = NagiosCommandPeer::getByName($commandName);
+                $commandService = (new NagiosCommandPeer)->getByName($commandName);
                 if (!empty($commandService)) {
                     $c = new Criteria();
                     $c->add(NagiosContactNotificationCommandPeer::TYPE, $type_command);
@@ -2397,9 +2385,7 @@ class RgmApiMethods
                         if ($exportConfiguration) {
                             $this->exportConfigurationToNagios($error, $success);
                         }
-
                     }
-
                 } else {
                     $code = 1;
                     $error .= "$commandName don't exist. ";
@@ -2427,13 +2413,12 @@ class RgmApiMethods
 
         $nstp = new NagiosServiceTemplatePeer;
         // Find host template
-        $template_service = $nstp->getByName($templateServiceName);
+        $template_service = $nstp::getByName($templateServiceName);
         if (!$template_service) {
             $error .= "Service Template $templateServiceName not found\n";
         }
 
         if (empty($error)) {
-
             if ($template_service->addTemplateInheritance($inheritServiceTemplateName)) {
                 $success .= "Inherit template " . $inheritServiceTemplateName . " added to service template " . $templateServiceName . "\n";
                 if ($exportConfiguration) {
@@ -2460,14 +2445,14 @@ class RgmApiMethods
         $code = 0;
 
         $nsp = new NagiosServicePeer();
-        $service = $nsp->getByHostAndDescription($hostName, $serviceName);
+        $service = $nsp::getByHostAndDescription($hostName, $serviceName);
         if (!$service) {
             $code = 1;
             $error .= "Service $serviceName or $hostName not found\n";
         }
 
         if (empty($error)) {
-            $ncg = NagiosContactGroupPeer::getByName($contactGroupName);
+            $ncg = (new NagiosContactGroupPeer)->getByName($contactGroupName);
             if ($ncg) {
                 $c = new Criteria();
                 $c->add(NagiosServiceContactGroupMemberPeer::SERVICE, $service->getId());
@@ -2506,14 +2491,14 @@ class RgmApiMethods
         $code = 0;
 
         $nsp = new NagiosServicePeer();
-        $service = $nsp->getByHostTemplateAndDescription($hostTemplateName, $serviceName);
+        $service = $nsp::getByHostTemplateAndDescription($hostTemplateName, $serviceName);
         if (!$service) {
             $code = 1;
             $error .= "Service $serviceName or $hostTemplateName not found\n";
         }
 
         if (empty($error)) {
-            $ncg = NagiosContactGroupPeer::getByName($contactGroupName);
+            $ncg = (new NagiosContactGroupPeer)->getByName($contactGroupName);
             if ($ncg) {
                 $c = new Criteria();
                 $c->add(NagiosServiceContactGroupMemberPeer::SERVICE, $service->getId());
@@ -2552,14 +2537,14 @@ class RgmApiMethods
         $code = 0;
 
         $nsp = new NagiosServicePeer();
-        $service = $nsp->getByHostAndDescription($hostName, $serviceName);
+        $service = $nsp::getByHostAndDescription($hostName, $serviceName);
         if (!$service) {
             $code = 1;
             $error .= "Service $serviceName or $hostName not found\n";
         }
 
         if (empty($error)) {
-            $nc = NagiosContactPeer::getByName($contactName);
+            $nc = (new NagiosContactPeer)->getByName($contactName);
             if ($nc) {
                 $c = new Criteria();
                 $c->add(NagiosServiceContactMemberPeer::SERVICE, $service->getId());
@@ -2598,14 +2583,14 @@ class RgmApiMethods
         $code = 0;
 
         $nsp = new NagiosServicePeer();
-        $service = $nsp->getByHostTemplateAndDescription($hostTemplateName, $serviceName);
+        $service = $nsp::getByHostTemplateAndDescription($hostTemplateName, $serviceName);
         if (!$service) {
             $code = 1;
             $error .= "Service $serviceName or $hostTemplateName not found\n";
         }
 
         if (empty($error)) {
-            $nc = NagiosContactPeer::getByName($contactName);
+            $nc = (new NagiosContactPeer)->getByName($contactName);
             if ($nc) {
                 $c = new Criteria();
                 $c->add(NagiosServiceContactMemberPeer::SERVICE, $service->getId());
@@ -2644,7 +2629,7 @@ class RgmApiMethods
         $code = 0;
 
         $nsp = new NagiosServicePeer();
-        $service = $nsp->getByHostAndDescription($hostName, $serviceName);
+        $service = $nsp::getByHostAndDescription($hostName, $serviceName);
         if (!$service) {
             $code = 1;
             $error .= "Service $serviceName or $hostName not found\n";
@@ -2675,7 +2660,6 @@ class RgmApiMethods
                 $code = 1;
                 $error .= "Service template $templateServiceName didn't exist.";
             }
-
         }
 
         $logs = $this->getLogs($error, $success);
@@ -2691,7 +2675,7 @@ class RgmApiMethods
         $code = 0;
 
         $nsp = new NagiosServicePeer();
-        $service = $nsp->getByHostTemplateAndDescription($hostTemplateName, $serviceName);
+        $service = $nsp::getByHostTemplateAndDescription($hostTemplateName, $serviceName);
         if (!$service) {
             $code = 1;
             $error .= "Service $serviceName or $hostTemplateName not found\n";
@@ -2722,14 +2706,12 @@ class RgmApiMethods
                 $code = 1;
                 $error .= "Service template $templateServiceName didn't exist.";
             }
-
         }
 
         $logs = $this->getLogs($error, $success);
 
         return array("code" => $code, "description" => $logs);
     }
-########################################## MODIFY
 
     /* LILAC - modify contact */
     public function modifyContact($contactName, $newContactName = "", $contactAlias = "", $contactMail = "", $contactPager = "", $contactGroup = "", $serviceNotificationCommand = "", $hostNotificationCommand = "", $options = NULL, $exportConfiguration = FALSE)
@@ -2765,7 +2747,7 @@ class RgmApiMethods
                 }
 
                 if (!empty($serviceNotificationCommand)) {
-                    $commandService = NagiosCommandPeer::getByName($serviceNotificationCommand);
+                    $commandService = (new NagiosCommandPeer)->getByName($serviceNotificationCommand);
                     if (!empty($commandService)) {
                         $c = new Criteria();
                         $c->add(NagiosContactNotificationCommandPeer::CONTACT_ID, $tempContact->getId());
@@ -2786,7 +2768,7 @@ class RgmApiMethods
                 }
 
                 if (!empty($hostNotificationCommand)) {
-                    $commandHost = NagiosCommandPeer::getByName($hostNotificationCommand);
+                    $commandHost = (new NagiosCommandPeer)->getByName($hostNotificationCommand);
                     if (!empty($commandHost)) {
                         $c = new Criteria();
                         $c->add(NagiosContactNotificationCommandPeer::CONTACT_ID, $tempContact->getId());
@@ -2908,7 +2890,7 @@ class RgmApiMethods
                 $tempContact->save();
 
                 if (!empty($contactGroup)) {
-                    $ncg = NagiosContactGroupPeer::getByName($contactGroup);
+                    $ncg = (new NagiosContactGroupPeer)->getByName($contactGroup);
                     if (!empty($ncg)) {
                         $c = new Criteria();
                         $c->add(NagiosContactGroupMemberPeer::CONTACT, $tempContact->getId());
@@ -2932,7 +2914,6 @@ class RgmApiMethods
                 $code = 1;
                 $error .= $e->getMessage();
             }
-
 
             if ($code == 0) {
                 $success .= "contact had been modified.";
@@ -2973,8 +2954,8 @@ class RgmApiMethods
         } else {
             if (isset($service->command)) {
                 $cmd = NagiosCommandPeer::retrieveByPK($nagioService->getCheckCommand());
-                if (!$cmd || ($cmd && $cmd->getName() !== $service->command)) {
-                    $command = NagiosCommandPeer::getByName($service->command);
+                if (!$cmd || ($cmd->getName() !== $service->command)) {
+                    $command = (new NagiosCommandPeer)->getByName($service->command);
                     $nagioService->setCheckCommand($command->getId());
                     $nagioService->save();
                     $changed++;
@@ -3035,8 +3016,8 @@ class RgmApiMethods
         } else {
             if (isset($service->command)) {
                 $cmd = NagiosCommandPeer::retrieveByPK($nagioService->getCheckCommand());
-                if (!$cmd || ($cmd && $cmd->getName() !== $service->command)) {
-                    $command = NagiosCommandPeer::getByName($service->command);
+                if (!$cmd || ($cmd->getName() !== $service->command)) {
+                    $command = (new NagiosCommandPeer)->getByName($service->command);
                     $nagioService->setCheckCommand($command->getId());
                     $nagioService->save();
                     $changed++;
@@ -3076,7 +3057,7 @@ class RgmApiMethods
     }
 
     /* LILAC - Modify Command --- */
-    public function modifyCommand($commandName, $newCommandName = NULL, $commandLine, $commandDescription = NULL)
+    public function modifyCommand($commandName, $newCommandName, $commandLine, $commandDescription = NULL)
     {
         /*---Modify check command ==> 'dummy_ok'---*/
         //TODO ==> Change command to 'dummy_ok' for template GENERIC_HOST (inheritance)
@@ -3114,7 +3095,6 @@ class RgmApiMethods
                 $code = 1;
                 $error .= "The command '" . $targetCommand->getName() . "' failed to update\n";
             }
-
         }
 
         $logs = $this->getLogs($error, $success);
@@ -3125,7 +3105,7 @@ class RgmApiMethods
     /**
      * @brief  Modify one or many Nagios Resources
      * @details  Nagios resources are $USER$ Nagios macros. RGM use these to store customer's constants.
-     * @param  $resources a JSON structure that reflects the resources to modify in the form of:
+     * @param  array $resources a JSON structure that reflects the resources to modify in the form of:
      *
      *     {
      *         "resources": {
@@ -3134,14 +3114,14 @@ class RgmApiMethods
      *         }
      *     }
      *
-     * @return  an array with the return status of the call
+     * @return  array An array with the return status of the call
      */
     public function modifyNagiosResources($resources)
     {
         $error = "";
         $success = "";
         $code = 0;
-        print_r($resources);
+        // print_r($resources);
         try {
             $resourceCfg = NagiosResourcePeer::doSelectOne(new Criteria());
             if (!$resourceCfg) {
@@ -3159,7 +3139,6 @@ class RgmApiMethods
             } else {
                 $success .= "Resources updated.";
             }
-
         } catch (Exception $e) {
             $code++;
             $error .= "An exception occured : $e";
@@ -3171,7 +3150,7 @@ class RgmApiMethods
     }
 
     /* LILAC - Modify Host */
-    public function modifyHost($templateHostName = NULL, $hostName, $newHostName = NULL, $hostIp = NULL, $hostAlias = "", $contactName = NULL, $contactGroupName = NULL, $exportConfiguration = FALSE)
+    public function modifyHost($templateHostName, $hostName, $newHostName = NULL, $hostIp = NULL, $hostAlias = "", $contactName = NULL, $contactGroupName = NULL, $exportConfiguration = FALSE)
     {
         $error = "";
         $success = "";
@@ -3179,7 +3158,7 @@ class RgmApiMethods
 
         $nhp = new NagiosHostPeer;
         // Find host
-        $host = $nhp->getByName($hostName);
+        $host = $nhp::getByName($hostName);
         if (!isset($host)) {
             $code = 1;
             $error .= "Host $hostName doesn't exist\n";
@@ -3208,13 +3187,13 @@ class RgmApiMethods
                 if (isset($templateHostName)) {
                     $nhtp = new NagiosHostTemplatePeer;
                     // Find host template
-                    $template_host = $nhtp->getByName($templateHostName);
+                    $template_host = $nhtp::getByName($templateHostName);
                     if (!$template_host) {
                         $code = 1;
                         $error .= "Host Template $templateHostName not found\n";
                     } else {
                         $c = new Criteria();
-                        $c->add(NagiosHostTemplateInheritancePeer::SOURCE_TEMPLATE, $targetTemplateHost->getId());
+                        $c->add(NagiosHostTemplateInheritancePeer::SOURCE_TEMPLATE, $template_host->getId());
                         $c->add(NagiosHostTemplateInheritancePeer::TARGET_TEMPLATE, $targetInheritanceTemplate->getId());
                         $membership = NagiosHostTemplateInheritancePeer::doSelectOne($c);
                         if (!$membership) {
@@ -3231,12 +3210,12 @@ class RgmApiMethods
                 }
 
                 //Add a contact to a host
-                if ($contactName != NULL && $this->addContactToHost($host, $contactName, $error, $success)["code"] == 0) {
+                if ($contactName != NULL && $this->addContactToHost($host, $contactName)["code"] == 0) {
                     $changed++;
                 }
 
                 // Add contactgroup to host
-                if ($contactGroupName != NULL && $this->addContactGroupToHost($host, $contactGroupName, $error, $success)["code"] == 0) {
+                if ($contactGroupName != NULL && $this->addContactGroupToHost($host, $contactGroupName)["code"] == 0) {
                     $changed++;
                 }
 
@@ -3331,8 +3310,6 @@ class RgmApiMethods
         return array("code" => $code, "description" => $logs);
     }
 
-########################################## DELETE
-
     /* LILAC - delete host Downtimes */
     public function deleteHostDowntime($idDowntime)
     {
@@ -3361,8 +3338,6 @@ class RgmApiMethods
                 $code = 1;
                 $error .= "An error occurred nothing happen.";
             }
-
-
         } catch (Exception $e) {
             $code = 1;
             $error .= $e->getMessage();
@@ -3401,8 +3376,6 @@ class RgmApiMethods
                 $code = 1;
                 $error .= "An error occurred nothing happen.";
             }
-
-
         } catch (Exception $e) {
             $code = 1;
             $error .= $e->getMessage();
@@ -3421,7 +3394,7 @@ class RgmApiMethods
         $code = 0;
         $changed = 0;
         $nhp = new NagiosHostPeer;
-        $host = $nhp->getByName($hostName);
+        $host = $nhp::getByName($hostName);
         // Find host
         if (!$host) {
             $error .= "Host :  $hostName not found\n";
@@ -3463,7 +3436,7 @@ class RgmApiMethods
         $code = 0;
         $changed = 0;
         $nhtp = new NagiosHostTemplatePeer;
-        $templateHost = $nhtp->getByName($templateHostName);
+        $templateHost = $nhtp::getByName($templateHostName);
         // Find template host
         if (!$templateHost) {
             $error .= "Tempalte Host :  $templateHostName not found\n";
@@ -3505,7 +3478,7 @@ class RgmApiMethods
         $code = 0;
         $changed = 0;
         $nstp = new NagiosServiceTemplatePeer;
-        $templateService = $nstp->getByName($templateServiceName);
+        $templateService = $nstp::getByName($templateServiceName);
         // Find template host
         if (!$templateService) {
             $error .= "Tempalte Service:  $templateServiceName not found\n";
@@ -3547,7 +3520,7 @@ class RgmApiMethods
         $code = 0;
         $changed = 0;
         $nsp = new NagiosServicePeer;
-        $service = $nsp->getByHostAndDescription($hostName, $serviceName);
+        $service = $nsp::getByHostAndDescription($hostName, $serviceName);
         // Find template host
         if (!$service) {
             $error .= "Service:  $serviceName not found\n";
@@ -3588,11 +3561,10 @@ class RgmApiMethods
         $success = "";
         $code = 0;
         try {
-            $contact = NagiosContactPeer::getByName($contactName);
+            $contact = (new NagiosContactPeer)->getByName($contactName);
             // Find host template
             if (!empty($contact)) {
-
-                $commandService = NagiosCommandPeer::getByName($commandName);
+                $commandService = (new NagiosCommandPeer)->getByName($commandName);
                 if (!empty($commandService)) {
                     $c = new Criteria();
 
@@ -3610,7 +3582,6 @@ class RgmApiMethods
                         $code = 1;
                         $error .= "Membership don't exist. ";
                     }
-
                 } else {
                     $code = 1;
                     $error .= "$commandName don't exist. ";
@@ -3638,7 +3609,7 @@ class RgmApiMethods
         $code = 0;
 
         $nsp = new NagiosServicePeer();
-        $service = $nsp->getByHostAndDescription($hostName, $serviceName);
+        $service = $nsp::getByHostAndDescription($hostName, $serviceName);
 
         if (!$service) {
             $code = 1;
@@ -3646,7 +3617,7 @@ class RgmApiMethods
         }
 
         if (empty($error)) {
-            $ncg = NagiosContactGroupPeer::getByName($contactGroupName);
+            $ncg = (new NagiosContactGroupPeer)->getByName($contactGroupName);
             if ($ncg) {
                 $c = new Criteria();
                 $c->add(NagiosServiceContactGroupMemberPeer::SERVICE, $service->getId());
@@ -3667,7 +3638,6 @@ class RgmApiMethods
                 $code = 1;
                 $error .= "That contact group didn't exist!\n";
             }
-
         }
 
         $logs = $this->getLogs($error, $success);
@@ -3683,7 +3653,7 @@ class RgmApiMethods
         $code = 0;
 
         $nsp = new NagiosServicePeer();
-        $service = $nsp->getByHostTemplateAndDescription($hostTemplateName, $serviceName);
+        $service = $nsp::getByHostTemplateAndDescription($hostTemplateName, $serviceName);
 
         if (!$service) {
             $code = 1;
@@ -3691,7 +3661,7 @@ class RgmApiMethods
         }
 
         if (empty($error)) {
-            $ncg = NagiosContactGroupPeer::getByName($contactGroupName);
+            $ncg = (new NagiosContactGroupPeer)->getByName($contactGroupName);
             if ($ncg) {
                 $c = new Criteria();
                 $c->add(NagiosServiceContactGroupMemberPeer::SERVICE, $service->getId());
@@ -3712,7 +3682,6 @@ class RgmApiMethods
                 $code = 1;
                 $error .= "That contact group didn't exist!\n";
             }
-
         }
 
         $logs = $this->getLogs($error, $success);
@@ -3727,10 +3696,10 @@ class RgmApiMethods
         $success = "";
         $code = 0;
         try {
-            $contact = NagiosContactPeer::getByName($contactName);
+            $contact = (new NagiosContactPeer)->getByName($contactName);
             // Find host template
             if (!empty($contact)) {
-                $ncg = NagiosContactGroupPeer::getByName($contactGroupName);
+                $ncg = (new NagiosContactGroupPeer)->getByName($contactGroupName);
                 if (!empty($ncg)) {
                     $c = new Criteria();
                     $c->add(NagiosContactGroupMemberPeer::CONTACT, $contact->getId());
@@ -3746,7 +3715,6 @@ class RgmApiMethods
                         $code = 1;
                         $error .= "$contactName already bind to the group $contactGroupName ";
                     }
-
                 } else {
                     $code = 1;
                     $error .= "$contactGroupName don't exist. ";
@@ -3773,7 +3741,7 @@ class RgmApiMethods
         $code = 0;
 
         $nsp = new NagiosServicePeer();
-        $service = $nsp->getByHostAndDescription($hostName, $serviceName);
+        $service = $nsp::getByHostAndDescription($hostName, $serviceName);
 
         if (!$service) {
             $code = 1;
@@ -3781,7 +3749,7 @@ class RgmApiMethods
         }
 
         if (empty($error)) {
-            $nc = NagiosContactPeer::getByName($contactName);
+            $nc = (new NagiosContactPeer)->getByName($contactName);
             if ($nc) {
                 $c = new Criteria();
                 $c->add(NagiosServiceContactMemberPeer::SERVICE, $service->getId());
@@ -3802,7 +3770,6 @@ class RgmApiMethods
                 $code = 1;
                 $error .= "That contact didn't exist!\n";
             }
-
         }
 
         $logs = $this->getLogs($error, $success);
@@ -3818,7 +3785,7 @@ class RgmApiMethods
         $code = 0;
 
         $nsp = new NagiosServicePeer();
-        $service = $nsp->getByHostTemplateAndDescription($hostTemplateName, $serviceName);
+        $service = $nsp::getByHostTemplateAndDescription($hostTemplateName, $serviceName);
 
         if (!$service) {
             $code = 1;
@@ -3826,7 +3793,7 @@ class RgmApiMethods
         }
 
         if (empty($error)) {
-            $nc = NagiosContactPeer::getByName($contactName);
+            $nc = (new NagiosContactPeer)->getByName($contactName);
             if ($nc) {
                 $c = new Criteria();
                 $c->add(NagiosServiceContactMemberPeer::SERVICE, $service->getId());
@@ -3847,7 +3814,6 @@ class RgmApiMethods
                 $code = 1;
                 $error .= "That contact didn't exist!\n";
             }
-
         }
 
         $logs = $this->getLogs($error, $success);
@@ -3863,7 +3829,7 @@ class RgmApiMethods
         $code = 0;
 
         $nsp = new NagiosServicePeer();
-        $service = $nsp->getByHostAndDescription($hostName, $serviceName);
+        $service = $nsp::getByHostAndDescription($hostName, $serviceName);
         if (!$service) {
             $code = 1;
             $error .= "Service $serviceName or $hostName not found\n";
@@ -3915,7 +3881,7 @@ class RgmApiMethods
         $code = 0;
 
         $nsp = new NagiosServicePeer();
-        $service = $nsp->getByHostTemplateAndDescription($hostTemplateName, $serviceName);
+        $service = $nsp::getByHostTemplateAndDescription($hostTemplateName, $serviceName);
         if (!$service) {
             $code = 1;
             $error .= "Service $serviceName or $hostTemplateName not found\n";
@@ -3969,15 +3935,13 @@ class RgmApiMethods
         $nstp = new NagiosServiceTemplatePeer();
         // Find host template
 
-        $template_service = $nstp->getByName($templateServiceName);
+        $template_service = $nstp::getByName($templateServiceName);
         if (!$template_service) {
             $error .= "Service Template $templateServiceName not found\n";
         }
 
         if (empty($error)) {
             //We prepared the list of existing parameters in the service
-            $parameter_list = array();
-            $tempListParam = [];
             $c = new Criteria();
             $c->add(NagiosServiceCheckCommandParameterPeer::TEMPLATE, $template_service->getId());
             $c->addAscendingOrderByColumn(NagiosServiceCheckCommandParameterPeer::ID);
@@ -3991,10 +3955,8 @@ class RgmApiMethods
                         $changed++;
                     }
                 }
-
             }
         }
-
 
         if ($changed > 0) {
             $success .= "$templateServiceName has been updated.\n";
@@ -4015,15 +3977,13 @@ class RgmApiMethods
         $code = 0;
         $changed = 0;
         $nsp = new NagiosServicePeer();
-        $service = $nsp->getByHostAndDescription($hostName, $serviceName);
+        $service = $nsp::getByHostAndDescription($hostName, $serviceName);
         if (!$service) {
             $code = 1;
             $error .= "Service $serviceName or $hostName not found\n";
         }
         if (empty($error)) {
             //We prepared the list of existing parameters in the service
-            $parameter_list = array();
-            $tempListParam = [];
             $c = new Criteria();
             $c->add(NagiosServiceCheckCommandParameterPeer::SERVICE, $service->getId());
             $c->addAscendingOrderByColumn(NagiosServiceCheckCommandParameterPeer::ID);
@@ -4037,7 +3997,6 @@ class RgmApiMethods
                         $changed++;
                     }
                 }
-
             }
         }
         if ($changed > 0) {
@@ -4061,15 +4020,13 @@ class RgmApiMethods
         $nhtp = new NagiosHostTemplatePeer();
         // Find host template
 
-        $template_host = $nhtp->getByName($templateHostName);
+        $template_host = $nhtp::getByName($templateHostName);
         if (!$template_host) {
             $error .= "Host Template $templateHostName not found\n";
         }
 
         if (empty($error)) {
             //We prepared the list of existing parameters in the host
-            $parameter_list = array();
-            $tempListParam = [];
             $c = new Criteria();
             $c->add(NagiosHostCheckCommandParameterPeer::HOST_TEMPLATE, $template_host->getId());
             $c->addAscendingOrderByColumn(NagiosHostCheckCommandParameterPeer::ID);
@@ -4083,10 +4040,8 @@ class RgmApiMethods
                         $changed++;
                     }
                 }
-
             }
         }
-
 
         if ($changed > 0) {
             $success .= "$templateHostName has been updated.\n";
@@ -4162,12 +4117,11 @@ class RgmApiMethods
         try {
             $nhp = new NagiosHostPeer;
 
-            $host = $nhp->getByName($hostName);
+            $host = $nhp::getByName($hostName);
             if (!$host) {
                 $code++;
                 $error .= "Host $hostName doesn't exist\n";
             } else {
-
                 $service = NagiosServicePeer::getByHostAndDescription($hostName, $serviceName);
 
                 if (!$service) {
@@ -4201,7 +4155,7 @@ class RgmApiMethods
         try {
             $nhtp = new NagiosHostTemplatePeer;
 
-            $host = $nhtp->getByName($hostTemplateName);
+            $host = $nhtp::getByName($hostTemplateName);
             if (!$host) {
                 $code++;
                 $error .= "Host $hostTemplateName doesn't exist\n";
@@ -4232,7 +4186,6 @@ class RgmApiMethods
     {
         $error = "";
         $success = "";
-        $code = 0;
 
         try {
             $targetTemplate = NagiosServiceTemplatePeer::getByName($templateServiceName);
@@ -4287,7 +4240,7 @@ class RgmApiMethods
 
         try {
             $nhp = new NagiosHostPeer;
-            $host = $nhp->getByName($hostName);
+            $host = $nhp::getByName($hostName);
 
             if ($host) {
                 $host->delete();
@@ -4381,16 +4334,15 @@ class RgmApiMethods
     }
 
     /* LILAC - Delete contact to Hosts */
-    public function deleteContactToHost($contactName, $hostName, $exportConfiguration = FALSE)
+    public function deleteContactToHost($contactName, $hostName)
     {
         $error = "";
         $success = "";
         $code = 0;
 
         try {
-            $targetContact = NagiosContactPeer::getByName($contactName);
+            $targetContact = (new NagiosContactPeer)->getByName($contactName);
             $targetHost = NagiosHostPeer::getByName($hostName);
-            $find = false;
 
             if (!$targetHost || !$targetContact) {
                 $code = 1;
@@ -4425,9 +4377,8 @@ class RgmApiMethods
         $code = 0;
 
         try {
-            $targetContactGp = NagiosContactGroupPeer::getByName($contactGroupName);
+            $targetContactGp = (new NagiosContactGroupPeer)->getByName($contactGroupName);
             $targetHost = NagiosHostPeer::getByName($hostName);
-            $find = false;
 
             if (!$targetHost || !$targetContactGp) {
                 $code = 1;
@@ -4457,8 +4408,6 @@ class RgmApiMethods
     /* LILAC - delEventBroker */
     public function delEventBroker($broker, $exportConfiguration = FALSE)
     {
-
-        global $lilac;
         $error = "";
         $success = "";
 
@@ -4492,11 +4441,9 @@ class RgmApiMethods
         $error = "";
         $success = "";
         $code = 0;
-        $hostGroup = NULL;
 
         // Check for pre-existing contact with same name
         if ($lilac->hostgroup_exists($hostGroupName)) {
-
             // All is well for error checking, add the hostgroup into the db.
             $hostGroup = NagiosHostgroupPeer::getByName($hostGroupName);
             $hostGroup->delete();
@@ -4510,7 +4457,6 @@ class RgmApiMethods
             $code = 1;
             $error .= "A host group with that name didn't exists!\n";
         }
-
 
         $logs = $this->getLogs($error, $success);
 
@@ -4527,11 +4473,10 @@ class RgmApiMethods
         try {
             $targetHostGroup = NagiosHostgroupPeer::getByName($hostGroupName);
             $targetTemplateHost = NagiosHostTemplatePeer::getByName($templateHostName);
-            $find = false;
 
             if (!$targetHostGroup || !$targetTemplateHost) {
                 $code = 1;
-                $error .= (!$targetContactGp ? "The Host group '" . $targetHostGroup . "'does not exist\n" : "The Template host '" . $targetTemplateHost . "'does not exist\n");
+                $error .= (!$hostGroupName ? "The Host group '" . $targetHostGroup . "'does not exist\n" : "The Template host '" . $targetTemplateHost . "'does not exist\n");
             } else {
                 $c = new Criteria();
                 $c->add(NagiosHostgroupMembershipPeer::HOST_TEMPLATE, $targetTemplateHost->getId());
@@ -4565,11 +4510,10 @@ class RgmApiMethods
         try {
             $targetHostGroup = NagiosHostgroupPeer::getByName($hostGroupName);
             $targetHost = NagiosHostPeer::getByName($hostName);
-            $find = false;
 
             if (!$targetHostGroup || !$targetHost) {
                 $code = 1;
-                $error .= (!$targetContactGp ? "The Host group '" . $targetHostGroup . "'does not exist\n" : "The host '" . $targetHost . "'does not exist\n");
+                $error .= (!$hostGroupName ? "The Host group '" . $targetHostGroup . "'does not exist\n" : "The host '" . $targetHost . "'does not exist\n");
             } else {
                 $c = new Criteria();
                 $c->add(NagiosHostgroupMembershipPeer::HOST, $targetHost->getId());
@@ -4601,7 +4545,7 @@ class RgmApiMethods
         $code = 0;
 
         try {
-            $targetContact = NagiosContactPeer::getByName($contactName);
+            $targetContact = (new NagiosContactPeer)->getByName($contactName);
             $targetTemplateHost = NagiosHostTemplatePeer::getByName($templateHostName);
 
             if (!$targetContact || !$targetTemplateHost) {
@@ -4638,7 +4582,7 @@ class RgmApiMethods
         $code = 0;
 
         try {
-            $targetContactGroup = NagiosContactGroupPeer::getByName($contactGroupName);
+            $targetContactGroup = (new NagiosContactGroupPeer)->getByName($contactGroupName);
             $targetTemplateHost = NagiosHostTemplatePeer::getByName($templateHostName);
 
             if (!$targetContactGroup || !$targetTemplateHost) {
@@ -4749,7 +4693,7 @@ class RgmApiMethods
         $code = 0;
 
         try {
-            $targetContactGroup = NagiosContactGroupPeer::getByName($contactGroupName);
+            $targetContactGroup = (new NagiosContactGroupPeer)->getByName($contactGroupName);
             $targetTemplateService = NagiosServiceTemplatePeer::getByName($templateServiceName);
 
             if (!$targetContactGroup || !$targetTemplateService) {
@@ -4786,7 +4730,7 @@ class RgmApiMethods
         $code = 0;
 
         try {
-            $targetContact = NagiosContactPeer::getByName($contactName);
+            $targetContact = (new NagiosContactPeer)->getByName($contactName);
             $targetTemplateService = NagiosServiceTemplatePeer::getByName($templateServiceName);
 
             if (!$targetContact || !$targetTemplateService) {
@@ -4823,7 +4767,7 @@ class RgmApiMethods
         $code = 0;
 
         try {
-            $targetServiceGroup = NagiosServiceGroupPeer::getByName($serviceGroupName);
+            $targetServiceGroup = (new NagiosServiceGroupPeer)->getByName($serviceGroupName);
             $targetTemplateService = NagiosServiceTemplatePeer::getByName($templateServiceName);
 
             if (!$targetServiceGroup || !$targetTemplateService) {
@@ -4860,7 +4804,7 @@ class RgmApiMethods
         $code = 0;
 
         try {
-            $targetServiceGroup = NagiosServiceGroupPeer::getByName($serviceGroupName);
+            $targetServiceGroup = (new NagiosServiceGroupPeer)->getByName($serviceGroupName);
             $targetService = NagiosServicePeer::getByHostAndDescription($hostName, $serviceName);
 
             if (!$targetServiceGroup || !$targetService) {
@@ -4889,7 +4833,6 @@ class RgmApiMethods
         return array("code" => $code, "description" => $logs);
     }
 
-########################################## DUPLIICATE
     /* LILAC - duplicate Service */
     public function duplicateService($hostName, $service, $exportConfiguration = FALSE)
     {
@@ -4904,7 +4847,7 @@ class RgmApiMethods
             $error .= "The host : '" . $host->getName() . "' doesn't exist";
         }
         if (!$services) {
-            $error .= "The service : '" . $services->getName() . "' doesn't exist";
+            $error .= "The service : '" . $services->name . "' doesn't exist";
         }
 
         if (isset($host) && isset($services)) {
@@ -4915,8 +4858,8 @@ class RgmApiMethods
                     $newService->save();
                 }
                 if (isset($tar->command)) {
-                    if (NagiosCommandPeer::getByName($tar->command)) {
-                        $command = NagiosCommandPeer::getByName($tar->command);
+                    if ((new NagiosCommandPeer)->getByName($tar->command)) {
+                        $command = (new NagiosCommandPeer)->getByName($tar->command);
                         $newService->setCheckCommand($command->getId());
                         $newService->save();
                     }
@@ -4944,7 +4887,6 @@ class RgmApiMethods
         $logs = $this->getLogs($error, $success);
         return array("code" => $code, "description" => $logs);
     }
-########################################## OTHER
 
     /* LILAC - Export Nagios Configuration */
     public function exportConfiguration($jobName = "Nagios Export")
@@ -4960,14 +4902,13 @@ class RgmApiMethods
     /* LIVESTATUS - List backends */
     public function listNagiosBackends()
     {
-
         $backends = getRGMConfig("sockets", "array");
+        $backends_json = array();
         for ($i = 0; $i < count($backends); $i++) {
             $backends_json[$i]["id"] = $i;
             $backends_json[$i]["backend"] = $backends[$i];
         }
         return $backends_json;
-
     }
 
     /**
@@ -4976,15 +4917,15 @@ class RgmApiMethods
      *      that allows to get all the monitored host's and service's data,
      *      including live data, using LiveStatus Query Language (LQL)
      *      see https://checkmk.com/cms_livestatus.html
-     * @param  $object the LV object to query (hosts, services, etc.)
-     * @param  $backendid the LV backend id (as specified in rgmweb's $sockets
+     * @param  string $object the LV object to query (hosts, services, etc.)
+     * @param  string $backendid the LV backend id (as specified in rgmweb's $sockets
      *      array definition)
      *      defaults: null => all sockets will be processed
-     * @param  $columns specify the columns to retrieve
+     * @param  boolean $columns specify the columns to retrieve
      *      default: false => all available columns are returned
-     * @param  $filters specify a query filter to apply
+     * @param  boolean $filters specify a query filter to apply
      *      default: false => no filter applied
-     * @return  an array containing the query result
+     * @return  array An array containing the query result
      */
     /* LIVESTATUS - List nagios objects */
     public function listNagiosObjects($object, $backendid = NULL, $columns = FALSE, $filters = FALSE)
@@ -5031,7 +4972,7 @@ class RgmApiMethods
                             $result[$socket_name] = $result[$socket_name]->columns($columns);
                         }
                         // get filters
-                        if ($filters) {
+                        if (is_array($filters)) {
                             foreach ($filters as $filter) {
                                 $result[$socket_name] = $result[$socket_name]->filter($filter);
                             }
@@ -5042,7 +4983,7 @@ class RgmApiMethods
                         $result[$socket_name] = $result[$socket_name]->executeAssoc();
                     } catch (Exception $e) {
                         $result['error'] = $e->getMessage();
-                        dump_var($e);
+                        var_dump($e);
                     }
                 } else {
                     $result['error'] = 'Error: host down';
@@ -5058,7 +4999,6 @@ class RgmApiMethods
     /* LIVESTATUS - List nagios states */
     public function listNagiosStates($backendid = NULL, $filters = FALSE)
     {
-
         // loop on each socket
         $sockets = getRGMConfig("sockets", "array");
 
@@ -5202,19 +5142,18 @@ class RgmApiMethods
 
         // response for the Ajax call
         return $result;
-
     }
 
     /**
      * @brief  enumerates all defined "tags" used to classify one-liners items
      * @details  enumerates all defined "tags" used to classify one-liners items
-     * @return  an array of available tag names
+     * @return  array an array of available tag names
      */
     public function listOneLinersTags()
     {
         global $database_rgmweb;
         $tags = array();
-        $stmt = sqlrequest($database_rgmweb, "SELECT name FROM ol_tags", false);
+        $stmt = sqlrequest($database_rgmweb, "SELECT name FROM ol_tags");
         while ($sql_raw = mysqli_fetch_array($stmt)) {
             $tags[] = $sql_raw[0];
         }
@@ -5223,8 +5162,8 @@ class RgmApiMethods
 
     /**
      * @brief  enumerates one-liners items or a subset filtered by tags
-     * @param  $tagsFilter a comma separated string of tag names, or null if no filter specified
-     * @return  an array of array of one-liner items
+     * @param  string $tagsFilter a comma separated string of tag names, or null if no filter specified
+     * @return  array an array of array of one-liner items
      */
     public function listOneLinersItems($tagsFilter = '')
     {
@@ -5235,7 +5174,7 @@ class RgmApiMethods
         if ($tagsFilter != '') {
             $tags = explode(',', $tagsFilter);
             foreach ($tags as $tagname) {
-                $stmt = sqlrequest($database_rgmweb, "SELECT id FROM ol_tags WHERE name = '$tagname';", false);
+                $stmt = sqlrequest($database_rgmweb, "SELECT id FROM ol_tags WHERE name = '$tagname'");
                 $sql_raw = mysqli_fetch_array($stmt);
                 if ($sql_raw) {
                     $tags_ids[] = $sql_raw[0];
@@ -5246,7 +5185,7 @@ class RgmApiMethods
         if (count($tags_ids) > 0) {
             $statement .= ' WHERE ta.id_tags = ' . implode(' OR ta.id_tags = ', $tags_ids);
         }
-        $stmt = sqlrequest($database_rgmweb, $statement, false);
+        $stmt = sqlrequest($database_rgmweb, $statement);
         while ($sql_raw = mysqli_fetch_array($stmt)) {
             $items[] = array(
                 'name' => $sql_raw[0],
@@ -5254,13 +5193,5 @@ class RgmApiMethods
             );
         }
         return $items;
-    }
-
-    public static function test1() {
-        return array("test1");
-    }
-
-    public static function test2() {
-        return array("test2");
     }
 }
