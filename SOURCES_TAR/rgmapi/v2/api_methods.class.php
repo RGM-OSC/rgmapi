@@ -61,7 +61,7 @@ class RgmApiMethods
      * @param string $jobName the export job name as stored into Lilac export table
      * @throws PropelException
      */
-    private function exportConfigurationToNagios(&$error = "", &$success = "", $jobName = "nagios")
+    private function exportConfigurationToNagios(&$error = "", &$success = "", $jobName = "Incremental Nagios Export")
     {
         $c = new Criteria();
         $exportJobs = ExportJobPeer::doSelect($c);
