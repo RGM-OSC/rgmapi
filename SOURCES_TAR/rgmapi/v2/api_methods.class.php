@@ -29,6 +29,9 @@ class RgmApiMethods
 {
     private $authUser;
 
+    /**
+     * @param string $username
+     */
     function __construct($username)
     {
         /**

@@ -64,6 +64,8 @@ class RgmApiCommon
     const HTTP_400 = 400;
     const HTTP_401 = 401;
     const HTTP_404 = 404;
+    const HTTP_406 = 406;
+    const HTTP_417 = 417;
 
     const CT_FORM = 'application/x-www-form-urlencoded';
     const CT_JSON = 'application/json';
@@ -388,6 +390,56 @@ class RgmApiCommon
     }
 
     /**
+     * Process JSON decodings errors
+     *
+     * @param Request $request
+     * @param Response $response
+     * @param integer $err JSON error code
+     */
+    private static function processJsonError($request, $response, $err)
+    {
+        $array = array('error' => 'JSON Error');
+        switch ($err) {
+            case JSON_ERROR_DEPTH:
+                $array['error'] = 'JSON Error: JSON_ERROR_DEPTH';
+                break;
+            case JSON_ERROR_STATE_MISMATCH:
+                $array['error'] = 'JSON Error: JSON_ERROR_STATE_MISMATCH';
+                break;
+            case JSON_ERROR_CTRL_CHAR:
+                $array['error'] = 'JSON Error: JSON_ERROR_CTRL_CHAR';
+                break;
+            case JSON_ERROR_SYNTAX:
+                $array['error'] = 'JSON Error: JSON_ERROR_SYNTAX';
+                break;
+            case JSON_ERROR_UTF8:
+                $array['error'] = 'JSON Error: JSON_ERROR_UTF8';
+                break;
+            case JSON_ERROR_RECURSION:
+                $array['error'] = 'JSON Error: JSON_ERROR_RECURSION';
+                break;
+            case JSON_ERROR_INF_OR_NAN:
+                $array['error'] = 'JSON Error: JSON_ERROR_INF_OR_NAN';
+                break;
+            case JSON_ERROR_UNSUPPORTED_TYPE:
+                $array['error'] = 'JSON Error: JSON_ERROR_UNSUPPORTED_TYPE';
+                break;
+            // Additional errors issued by PHP 7
+            // case JSON_ERROR_INVALID_PROPERTY_NAME:
+            //     $array['error'] = 'JSON Error: JSON_ERROR_INVALID_PROPERTY_NAME';
+            //     break;
+            // case JSON_ERROR_UTF16:
+            //     $array['error'] = 'JSON Error: JSON_ERROR_UTF16';
+            //     break;
+            default:
+                $array['error'] = 'JSON Error: UNKNOWN ERROR';
+                break;
+        }
+        $result = RgmApiCommon::getJsonResponse($request, $response, static::HTTP_406, $array);
+        echo $result;
+    }
+
+    /**
      * @brief   Kind of framework to add routes very easily
      * @details This function registers Slim routes to ObjectManager methods
      * @param string $httpMethod HTTP method (get, post, put, etc.) to use for route registration
@@ -405,45 +457,7 @@ class RgmApiCommon
             if ($contentType === static::CT_JSON) {
                 $body = json_decode($request->getBody(), true);
                 if (($err = json_last_error()) != 0) {
-                    $array = array('error' => 'JSON Error');
-                    switch ($err) {
-                        case JSON_ERROR_DEPTH:
-                            $array['error'] = 'JSON Error: JSON_ERROR_DEPTH';
-                            break;
-                        case JSON_ERROR_STATE_MISMATCH:
-                            $array['error'] = 'JSON Error: JSON_ERROR_STATE_MISMATCH';
-                            break;
-                        case JSON_ERROR_CTRL_CHAR:
-                            $array['error'] = 'JSON Error: JSON_ERROR_CTRL_CHAR';
-                            break;
-                        case JSON_ERROR_SYNTAX:
-                            $array['error'] = 'JSON Error: JSON_ERROR_SYNTAX';
-                            break;
-                        case JSON_ERROR_UTF8:
-                            $array['error'] = 'JSON Error: JSON_ERROR_UTF8';
-                            break;
-                        case JSON_ERROR_RECURSION:
-                            $array['error'] = 'JSON Error: JSON_ERROR_RECURSION';
-                            break;
-                        case JSON_ERROR_INF_OR_NAN:
-                            $array['error'] = 'JSON Error: JSON_ERROR_INF_OR_NAN';
-                            break;
-                        case JSON_ERROR_UNSUPPORTED_TYPE:
-                            $array['error'] = 'JSON Error: JSON_ERROR_UNSUPPORTED_TYPE';
-                            break;
-                        // Errors known from PHP 7
-                        // case JSON_ERROR_INVALID_PROPERTY_NAME:
-                        //     $array['error'] = 'JSON Error: JSON_ERROR_INVALID_PROPERTY_NAME';
-                        //     break;
-                        // case JSON_ERROR_UTF16:
-                        //     $array['error'] = 'JSON Error: JSON_ERROR_UTF16';
-                        //     break;
-                        default:
-                            $array['error'] = 'JSON Error: UNKNOWN ERROR';
-                            break;
-                    }
-                    $result = RgmApiCommon::getJsonResponse($request, $response, 406, $array);
-                    echo $result;
+                    static::processJsonError($request, $response, $err);
                     return;
                 }
             } else {
@@ -508,7 +522,7 @@ class RgmApiCommon
             // if unknown or missing parameters found, exit with a http 417 error code
             if ($msg != '') {
                 $array = array('message' => $msg);
-                $result = static::getJsonResponse($request, $response, 417, $array);
+                $result = static::getJsonResponse($request, $response, static::HTTP_417, $array);
                 echo $result;
                 return;
             }
