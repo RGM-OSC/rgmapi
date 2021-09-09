@@ -13,6 +13,7 @@
  * Copyright (c) 2019 RGM Team
  * Michael Aubertin <maubertin@fr.scc.com>
  * Eric Belhomme <ebelhomme@fr.scc.com>
+ * Alex Rocher <arocher@fr.scc.com>
  */
 
 include_once('/srv/rgm/rgmweb/include/livestatus/Client.php');

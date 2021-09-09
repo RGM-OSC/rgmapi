@@ -1,5 +1,23 @@
 <?php
 
+/*
+ Copyright (C) 2021 RGM Team
+ VERSION : 1.0
+ APPLICATION : rgmweb for rgm project
+
+ LICENCE :
+ This program is free software; you can redistribute it and/or
+ modify it under the terms of the GNU General Public License
+ as published by the Free Software Foundation; either version 2
+ of the License, or (at your option) any later version.
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+*/
+
+use Slim\Http\Request;
+use Slim\Http\Response;
 use Slim\Slim;
 
 const ACL_NOAUTH = 0b00001; // authentication not required (token *not* needed)
@@ -12,6 +30,9 @@ $ACL_MATRIX = array(
     "*" => ACL_READONLY
 );
 
+/**
+ * Commons methods used for RGMApi v2
+ */
 class RgmApiCommon
 {
     const VERSION = '2.0';
@@ -61,6 +82,13 @@ class RgmApiCommon
 
     const SELECT_USER_BY_NAME = 'SELECT * FROM users WHERE user_name = ?';
 
+    /**
+     * Create token into database
+     * @param string $token
+     * @param integer $user_id
+     * @param integer $validity_epoch
+     * @param int $usage_max_count
+     */
     private static function insertToken($token, $user_id, $validity_epoch, $usage_max_count = -1)
     {
         global $database_rgmweb;
@@ -71,6 +99,9 @@ class RgmApiCommon
         RgmConnexion::sqlrequest($database_rgmweb, static::INSERT_TOKEN, false, array($token, $user_id, $validity_epoch, $usage_max_count, $source_ip));
     }
 
+    /**
+     * @param string $token Increment token usage
+     */
     private static function incTokenUsageCount($token)
     {
         global $database_rgmweb;
@@ -114,6 +145,12 @@ class RgmApiCommon
         return $ret;
     }
 
+    /**
+     * Get user by its ID
+     *
+     * @param integer $id User ID
+     * @return array|string
+     */
     private static function getUserById($id)
     {
         global $database_rgmweb;
@@ -126,6 +163,12 @@ class RgmApiCommon
         return '';
     }
 
+    /**
+     * Get user by its name
+     *
+     * @param string $username User name
+     * @return array|string
+     */
     private static function getUserByName($username)
     {
         global $database_rgmweb;
@@ -163,6 +206,13 @@ class RgmApiCommon
         return $token;
     }
 
+    /**
+     * @param Request $request
+     * @param Response $response
+     * @param integer $httpCode
+     * @param array $array
+     * @return false|string
+     */
     private static function getJsonResponse($request, $response, $httpCode, $array = null)
     {
         // Set the compliant http code
@@ -183,7 +233,7 @@ class RgmApiCommon
             }
         }
 
-        $codeMessage = $response->getMessageForCode($httpCode);
+        $codeMessage = $response::getMessageForCode($httpCode);
         $arrayHeader = array(
             'version' => static::VERSION,
             'code' => $httpCode,
@@ -199,6 +249,12 @@ class RgmApiCommon
         return $jsonResponse;
     }
 
+    /**
+     * @param Request $request
+     * @param Response $response
+     * @param string $logs
+     * @param boolean $authenticationValid
+     */
     private static function constructResponse($request, $response, $logs, $authenticationValid = false)
     {
         if ($authenticationValid) {
@@ -313,6 +369,9 @@ class RgmApiCommon
         return $tokenInfo;
     }
 
+    /**
+     * Check token validity
+     */
     public static function checkAuthToken()
     {
         $app = Slim::getInstance();
