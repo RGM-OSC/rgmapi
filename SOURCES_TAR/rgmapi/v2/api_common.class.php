@@ -343,22 +343,22 @@ class RgmApiCommon
             global $database_rgmweb;
             $query = RgmConnexion::sqlrequest_array($database_rgmweb, static::SELECT_VALID_TOKEN, array($token, time()));
             if (!empty($query)) {
-                $tokenInfo['status'] = static::STATUS_AUTHORIZED;
-
                 $user_id = $query[0]['user_id'];
                 $user = static::getUserById($user_id);
                 $tokenInfo['username'] = $user['user_name'];
 
-                if ($user['group_id'] === 1) {
-                    $tokenInfo['status'] = static::STATUS_AUTHORIZED;
-                } elseif ($acl === ACL_ADMIN) {
-                    $tokenInfo['status'] = static::STATUS_UNAUTHORIZED;
-                } elseif ($acl === ACL_READONLY) {
-                    $tokenInfo['status'] = static::STATUS_AUTHORIZED;
-                }
+                if ($user['disabled'] == 0) {
+                    if ($user['group_id'] === 1) {
+                        $tokenInfo['status'] = static::STATUS_AUTHORIZED;
+                    } elseif ($acl === ACL_ADMIN) {
+                        $tokenInfo['status'] = static::STATUS_UNAUTHORIZED;
+                    } elseif ($acl === ACL_READONLY) {
+                        $tokenInfo['status'] = static::STATUS_AUTHORIZED;
+                    }
 
-                // Increment token usage_count
-                static::incTokenUsageCount($token);
+                    // Increment token usage_count
+                    static::incTokenUsageCount($token);
+                }
             } else {
                 error_log('checkAuthTokenValidity() : unknown token=' . $token);
             }
