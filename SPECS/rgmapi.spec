@@ -1,7 +1,7 @@
 Summary:        API for the RGM suite.
 Name:           rgmapi
 Version:        1.2
-Release:        5.rgm
+Release:        6.rgm
 Source0:        %{name}.tar.gz
 Source1:        httpd-rgmapi.example.conf
 Group:          Applications/System
@@ -49,6 +49,9 @@ rm -rf %{buildroot}
 
 
 %changelog
+* Wed Jun 14 2023 Vincent Fricou <vfricou@fr.scc.com> - 1.2-6.rgm
+- Fix shell binary absolute path
+
 * Tue Apr 25 2023 Vincent Fricou <vfricou@fr.scc.com> - 1.2-5.rgm
 - Remove dependency to php-mcrypt
 
