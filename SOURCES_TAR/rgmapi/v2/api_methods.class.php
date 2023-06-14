@@ -83,7 +83,7 @@ class RgmApiMethods
             $exportJob->setStartTime(time());
             $exportJob->setStatus("Starting...");
             $exportJob->save();
-            exec("php /srv/rgm/lilac/exporter/export.php " . $exportJob->getId() . " > /dev/null 2>&1", $tempOutput, $retVal);
+            exec("/usr/bin/php /srv/rgm/lilac/exporter/export.php " . $exportJob->getId() . " > /dev/null 2>&1", $tempOutput, $retVal);
 
             $success .= $jobName . " : Nagios configuration exported\n";
         } else {
