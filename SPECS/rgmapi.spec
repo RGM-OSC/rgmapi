@@ -1,7 +1,7 @@
 Summary:        API for the RGM suite.
 Name:           rgmapi
 Version:        1.2
-Release:        4.rgm
+Release:        5.rgm
 Source0:        %{name}.tar.gz
 Source1:        httpd-rgmapi.example.conf
 Group:          Applications/System
@@ -50,6 +50,9 @@ rm -rf %{buildroot}
 
 
 %changelog
+* Wed Jun 14 2023 Vincent Fricou <vfricou@fr.scc.com> - 1.2-5.rgm
+- Fix shell binary absolute path
+
 * Fri Sep 03 2021 Alex Rocher <arocher@fr.scc.com> - 1.2-4.rgm
 - Add Swagger for RGMApi v2
 
