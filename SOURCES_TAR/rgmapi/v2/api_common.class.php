@@ -123,7 +123,7 @@ class RgmApiCommon
         // gen token randomly
         $ret = array();
 
-        $salt = mcrypt_create_iv(22);
+        $salt = random_bytes(22);
         $salt = base64_encode($salt);
         $salt = str_replace('+', '.', $salt);
 

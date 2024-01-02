@@ -31,7 +31,7 @@
     global $rgm_session;
     // share session mgmt with rgmweb
     $ret['session'] = $rgm_session->generate_session_id();
-    $salt = mcrypt_create_iv(22, MCRYPT_DEV_URANDOM);
+    $salt = random_bytes(22);
     $salt = base64_encode($salt);
     $salt = str_replace('+', '.', $salt);
     $ret['token'] = hash('sha256', crypt($username, '$2y$10$' . $salt . '$') . $_SERVER['SERVER_ADDR']); // NOSONAR
@@ -135,7 +135,7 @@
     $userpasswd = '';
 
     $username = $request->get('username');
-    
+
     if ($userintable = getUserByUsername($username)) {
       $user_id = mysqli_result($userintable, 0, "user_id");
       $user_right = mysqli_result($userintable, 0, "readonly");
