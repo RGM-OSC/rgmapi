@@ -680,21 +680,32 @@ class RgmApiMethods
             $date = new DateTime();
             $timestamp = $date->getTimestamp();
             if (NagiosHostPeer::getByName($hostName)) {
+                // Initial state for downtimes
+                $downtimesList = $this->getDowntimes();
+                $cnt_downtime = count($downtimesList);
+
                 if (!$childHostAction) {
                     $cmdline = '[' . $timestamp . '] SCHEDULE_HOST_DOWNTIME;' . $hostName . ';' . $start . ';' . $end . ';' . $fixed . ';0;' . $duration . ';' . $user . ';' . $comment . PHP_EOL;
-                    print "no child - cmd: $cmdline";
+                    // print "no child - cmd: $cmdline";
                     file_put_contents($CommandFile, $cmdline, FILE_APPEND);
                 } else {
                     $cmdline = '[' . $timestamp . '] SCHEDULE_AND_PROPAGATE_HOST_DOWNTIME;' . $hostName . ';' . $start . ';' . $end . ';' . $fixed . ';0;' . $duration . ';' . $user . ';' . $comment . PHP_EOL;
-                    print "with child - cmd: $cmdline";
+                    // print "with child - cmd: $cmdline";
                     file_put_contents($CommandFile, $cmdline, FILE_APPEND);
                 }
-                $downtimesList = $this->getDowntimes();
+
+                $y = 0;
+                // Wait downtime creation return 2.5 seconds max
+                while (count($downtimesList) <= $cnt_downtime && $y < 10) {
+                    $downtimesList = $this->getDowntimes();
+                    $y++;
+                    usleep(100000); // Wait 0.5 seconds to loop
+                }
                 $x = 0;
-                $verify = False;
+                $verify = false;
                 while ($x < count($downtimesList) && !$verify) {
                     if (strval($timestamp) == strval($downtimesList[$x]["entry_time"])) {
-                        $verify = True;
+                        $verify = true;
                         $success .= "Schedule host downtimes succesfully save. ref: $timestamp";
                     }
                     $x++;
@@ -760,21 +771,25 @@ class RgmApiMethods
                 $code = 1;
                 $error .= "$hostName and/or $serviceName didn't exist.";
             } else {
+                // Initial state for downtimes
+                $downtimesList = $this->getDowntimes();
+                $cnt_downtime = count($downtimesList);
+
                 $cmdline = '[' . $timestamp . '] SCHEDULE_SVC_DOWNTIME;' . $hostName . ';' . $serviceName . ';' . $start . ';' . $end . ';' . $fixed . ';0;' . $duration . ';' . $user . ';' . $comment . '' . PHP_EOL;
                 file_put_contents($CommandFile, $cmdline, FILE_APPEND);
-                $x = 0;
+
                 $y = 0;
-                $downtimesList = $this->getDowntimes();
                 // Wait downtime creation return 2.5 seconds max
-                while (count($downtimesList) < 1 && $y < 5) {
+                while (count($downtimesList) <= $cnt_downtime && $y < 10) {
                     $downtimesList = $this->getDowntimes();
                     $y++;
-                    usleep(500000); // Wait 0.5 seconds to loop
+                    usleep(100000); // Wait 0.5 seconds to loop
                 }
-                $verify = False;
+                $verify = false;
+                $x = 0;
                 while ($x < count($downtimesList) && !$verify) {
                     if (strval($timestamp) >= strval($downtimesList[$x]["entry_time"]) && strval($timestamp) <= (strval($downtimesList[$x]["entry_time"]) + 3)) {
-                        $verify = True;
+                        $verify = true;
                         $success .= "Schedule service downtimes succesfully save. ref: $timestamp";
                     }
                     $x++;
@@ -1070,14 +1085,14 @@ class RgmApiMethods
      * @return string
      * @throws PropelException
      */
-    public function createUser($userName, $userMail, $admin = false, $filterName = "", $filterValue = "", $exportConfiguration = FALSE)
+    public function createUser($userName, $userMail, $limited = false, $admin = false, $filterName = "", $filterValue = "", $exportConfiguration = FALSE)
     {
         //Lower case
         $userName = strtolower($userName);
 
         $success = "";
         $error = "";
-        $userGroup = 0;
+        $userGroup = 2;
         //Local user
         $userType = 0;
         $userPassword1 = $userName;
@@ -1090,11 +1105,16 @@ class RgmApiMethods
             $userDescr = "admin user";
             $createdUserLimitation = 0;
         } else {
-            $userDescr = "limited user";
-            $createdUserLimitation = 1;
+            if ($limited) {
+                $userDescr = "limited user";
+                $createdUserLimitation = 1;
+            } else {
+                $userDescr = "standard user";
+                $createdUserLimitation = 0;
+            }
         }
         // RGMWEB - User creation
-        $user = insert_user($userName, $userDescr, $userGroup, $userPassword1, $userPassword2, $userType, "", $userMail, $createdUserLimitation, $message);
+        $user = insert_user($userName, $userDescr, $userMail, $userGroup, $userPassword1, $userPassword2, $userType, "", $createdUserLimitation, $message);
 
         if ($user) {
             $success .= "User $userName created\n";

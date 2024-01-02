@@ -1,7 +1,7 @@
 Summary:        API for the RGM suite.
 Name:           rgmapi
 Version:        1.2
-Release:        7.rgm
+Release:        8.rgm
 Source0:        %{name}.tar.gz
 Source1:        httpd-rgmapi.example.conf
 Group:          Applications/System
@@ -49,6 +49,11 @@ rm -rf %{buildroot}
 
 
 %changelog
+* Tue Jan 02 2024 Alex Rocher <arocher@fr.scc.com> - 1.2-8.rgm
+- Fix downtimes and user creation
+- Fix default value on order inheritance + fix import
+- Fix mcrypt module that is not available anymore en php 8
+
 * Fri Dec 29 2023 Vincent Fricou <vfricou@fr.scc.com> - 1.2-7.rgm
 - Fix remove function for php 8
 
