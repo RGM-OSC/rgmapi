@@ -55,7 +55,7 @@ RgmApiCommon::addRoute('DELETE', '/host/contact', 'deleteContactToHost', ACL_ADM
 RgmApiCommon::addRoute('POST', '/host/contact/group', 'addContactGroupToHost', ACL_ADMIN);
 RgmApiCommon::addRoute('DELETE', '/host/contact/group', 'deleteContactGroupToHost', ACL_ADMIN);
 RgmApiCommon::addRoute('POST', '/host/template', 'addHostTemplateToHost', ACL_ADMIN);
-RgmApiCommon::addRoute('DELETE', '/host/templates', 'deleteHostTemplateToHost', ACL_ADMIN);
+RgmApiCommon::addRoute('DELETE', '/host/template', 'deleteHostTemplateToHost', ACL_ADMIN);
 RgmApiCommon::addRoute('GET', '/host/down', 'getHostDown', ACL_READONLY);
 RgmApiCommon::addRoute('POST', '/host/arguments', 'addCustomArgumentsToHost', ACL_ADMIN);
 RgmApiCommon::addRoute('DELETE', '/host/arguments', 'deleteCustomArgumentsToHost', ACL_ADMIN);
@@ -74,7 +74,8 @@ RgmApiCommon::addRoute('POST', '/service', 'createServiceToHost', ACL_ADMIN);
 RgmApiCommon::addRoute('PUT', '/service', 'modifyServicefromHost', ACL_ADMIN);
 RgmApiCommon::addRoute('DELETE', '/service', 'deleteService', ACL_ADMIN);
 RgmApiCommon::addRoute('GET', '/services/down', 'getServicesDown', ACL_READONLY);
-RgmApiCommon::addRoute('POST', '/service/duplicate', 'duplicateService', ACL_ADMIN);
+// Deprecated : to be rewritten
+//RgmApiCommon::addRoute('POST', '/service/duplicate', 'duplicateService', ACL_ADMIN);
 RgmApiCommon::addRoute('POST', '/service/contact', 'addContactToServiceInHost', ACL_ADMIN);
 RgmApiCommon::addRoute('DELETE', '/service/contact', 'deleteContactToServiceInHost', ACL_ADMIN);
 RgmApiCommon::addRoute('POST', '/service/contact/group', 'addContactGroupToServiceInHost', ACL_ADMIN);

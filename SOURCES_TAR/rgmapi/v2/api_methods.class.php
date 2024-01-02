@@ -16,6 +16,7 @@
  * Alex Rocher <arocher@fr.scc.com>
  */
 
+include_once('/srv/rgm/rgmweb/include/arrays.php');
 include_once('/srv/rgm/rgmweb/include/livestatus/Client.php');
 include_once('/srv/rgm/lilac/includes/config.inc');
 include_once('/srv/rgm/rgmweb/module/monitoring_ged/ged_functions.php');
@@ -488,7 +489,7 @@ class RgmApiMethods
      * @param string $contactGroup a valid Lilac ContactGroup object. Defaults to @b "" (empty string)
      * @param string $serviceNotificationCommand a valid Lilac Command objet used as command for Nagios service notifier. Default to  @b "rgm_service_notifier"
      * @param string $hostNotificationCommand a valid Lilac Command objet used as command for Nagios host notifier. Default to  @b "rgm_host_notifier"
-     * @param string $options a list array of optional flags. currently supported flags are:
+     * @param Array $options a list array of optional flags. currently supported flags are:
      *      | flag |
      *      |------|
      *      | host_notification_period  |
@@ -508,13 +509,13 @@ class RgmApiMethods
      *      | retain_nonstatus_information  |
      *      | host_notifications_enabled  |
      *      | service_notifications_enabled  |
-     * @param  boolean s$exportConfiguration force the execution of Lilac exporter after Contact creation. Defaults to **FALSE**
+     * @param  boolean $exportConfiguration force the execution of Lilac exporter after Contact creation. Defaults to **FALSE**
      * @return  array An array with the return status of the call
      * @throws PropelException
      */
     public function createContact($contactName, $contactAlias, $contactMail,
                                   $contactPager = "", $contactGroup = "", $serviceNotificationCommand = "rgm_service_notifier",
-                                  $hostNotificationCommand = "rgm_host_notifier", $options = NULL,
+                                  $hostNotificationCommand = "rgm_host_notifier", $options = Array(),
                                   $exportConfiguration = FALSE)
     {
         $error = "";
@@ -534,91 +535,89 @@ class RgmApiMethods
                 $tempContact->setAlias($contactAlias);
                 $tempContact->setEmail($contactMail);
                 $tempContact->setPager($contactPager);
+                if (array_key_exists('host_notification_period', $options)) {
+                    $tempContact->setHostNotificationPeriodByName(strval($options->host_notification_period));
+                }
+                if (array_key_exists('service_notification_period', $options)) {
+                    $tempContact->setServiceNotificationPeriodByName(strval($options->service_notification_period));
+                }
+                if (!array_key_exists('host_notification_options_down', $options)) {
+                    $tempContact->setHostNotificationOnDown(0);
+                } else {
+                    $tempContact->setHostNotificationOnDown(intval($options->host_notification_options_down));
+                }
+                if (!array_key_exists('host_notification_options_flapping', $options)) {
+                    $tempContact->setHostNotificationOnFlapping(0);
+                } else {
+                    $tempContact->setHostNotificationOnFlapping($options->host_notification_options_flapping);
+                }
+                if (!array_key_exists('host_notification_options_recovery', $options)) {
+                    $tempContact->setHostNotificationOnRecovery(0);
+                } else {
+                    $tempContact->setHostNotificationOnRecovery($options->host_notification_options_recovery);
+                }
+                if (!array_key_exists('host_notification_options_scheduled_downtime', $options)) {
+                    $tempContact->setHostNotificationOnScheduledDowntime(0);
+                } else {
+                    $tempContact->setHostNotificationOnScheduledDowntime($options->host_notification_options_scheduled_downtime);
+                }
+                if (!array_key_exists('host_notification_options_unreachable', $options)) {
+                    $tempContact->setHostNotificationOnUnreachable(0);
+                } else {
+                    $tempContact->setHostNotificationOnUnreachable($options->host_notification_options_unreachable);
+                }
+                if (!array_key_exists('service_notification_options_critical', $options)) {
+                    $tempContact->setServiceNotificationOnCritical(0);
+                } else {
+                    $tempContact->setServiceNotificationOnCritical($options->service_notification_options_critical);
+                }
+                if (!array_key_exists('service_notification_options_flapping', $options)) {
+                    $tempContact->setServiceNotificationOnFlapping(0);
+                } else {
+                    $tempContact->setServiceNotificationOnFlapping($options->service_notification_options_flapping);
+                }
+                if (!array_key_exists('service_notification_options_recovery', $options)) {
+                    $tempContact->setServiceNotificationOnRecovery(0);
+                } else {
+                    $tempContact->setServiceNotificationOnRecovery($options->service_notification_options_recovery);
+                }
+                if (!array_key_exists('service_notification_options_unknown', $options)) {
+                    $tempContact->setServiceNotificationOnUnknown(0);
+                } else {
+                    $tempContact->setServiceNotificationOnUnknown($options->service_notification_options_unknown);
+                }
+                if (!array_key_exists('service_notification_options_warning', $options)) {
+                    $tempContact->setServiceNotificationOnWarning(0);
+                } else {
+                    $tempContact->setServiceNotificationOnWarning($options->service_notification_options_warning);
+                }
+                if (!array_key_exists('can_submit_commands', $options)) {
+                    $tempContact->setCanSubmitCommands(0);
+                } else {
+                    $tempContact->setCanSubmitCommands($options->can_submit_commands);
+                }
+                if (!array_key_exists('retain_status_information', $options)) {
+                    $tempContact->setRetainStatusInformation(0);
+                } else {
+                    $tempContact->setRetainStatusInformation($options->retain_status_information);
+                }
+                if (!array_key_exists('retain_nonstatus_information', $options)) {
+                    $tempContact->setRetainNonstatusInformation(0);
+                } else {
+                    $tempContact->setRetainNonstatusInformation($options->retain_nonstatus_information);
+                }
+                if (!array_key_exists('host_notifications_enabled', $options)) {
+                    $tempContact->setHostNotificationsEnabled(0);
+                } else {
+                    $tempContact->setHostNotificationsEnabled($options->host_notifications_enabled);
+                }
+                if (!array_key_exists('service_notifications_enabled', $options)) {
+                    $tempContact->setServiceNotificationsEnabled(0);
+                } else {
+                    $tempContact->setServiceNotificationsEnabled($options->service_notifications_enabled);
+                }
                 $tempContact->addServiceNotificationCommandByName($serviceNotificationCommand);
                 $tempContact->addHostNotificationCommandByName($hostNotificationCommand);
-                if ($options) {
-                    if (array_key_exists('host_notification_period', $options)) {
-                        $tempContact->setHostNotificationPeriodByName(strval($options->host_notification_period));
-                    }
-                    if (array_key_exists('service_notification_period', $options)) {
-                        $tempContact->setServiceNotificationPeriodByName(strval($options->service_notification_period));
-                    }
-                    if (!array_key_exists('host_notification_options_down', $options)) {
-                        $tempContact->setHostNotificationOnDown(0);
-                    } else {
-                        $tempContact->setHostNotificationOnDown(intval($options->host_notification_options_down));
-                    }
-                    if (!array_key_exists('host_notification_options_flapping', $options)) {
-                        $tempContact->setHostNotificationOnFlapping(0);
-                    } else {
-                        $tempContact->setHostNotificationOnFlapping($options->host_notification_options_flapping);
-                    }
-                    if (!array_key_exists('host_notification_options_recovery', $options)) {
-                        $tempContact->setHostNotificationOnRecovery(0);
-                    } else {
-                        $tempContact->setHostNotificationOnRecovery($options->host_notification_options_recovery);
-                    }
-                    if (!array_key_exists('host_notification_options_scheduled_downtime', $options)) {
-                        $tempContact->setHostNotificationOnScheduledDowntime(0);
-                    } else {
-                        $tempContact->setHostNotificationOnScheduledDowntime($options->host_notification_options_scheduled_downtime);
-                    }
-                    if (!array_key_exists('host_notification_options_unreachable', $options)) {
-                        $tempContact->setHostNotificationOnUnreachable(0);
-                    } else {
-                        $tempContact->setHostNotificationOnUnreachable($options->host_notification_options_unreachable);
-                    }
-                    if (!array_key_exists('service_notification_options_critical', $options)) {
-                        $tempContact->setServiceNotificationOnCritical(0);
-                    } else {
-                        $tempContact->setServiceNotificationOnCritical($options->service_notification_options_critical);
-                    }
-                    if (!array_key_exists('service_notification_options_flapping', $options)) {
-                        $tempContact->setServiceNotificationOnFlapping(0);
-                    } else {
-                        $tempContact->setServiceNotificationOnFlapping($options->service_notification_options_flapping);
-                    }
-                    if (!array_key_exists('service_notification_options_recovery', $options)) {
-                        $tempContact->setServiceNotificationOnRecovery(0);
-                    } else {
-                        $tempContact->setServiceNotificationOnRecovery($options->service_notification_options_recovery);
-                    }
-                    if (!array_key_exists('service_notification_options_unknown', $options)) {
-                        $tempContact->setServiceNotificationOnUnknown(0);
-                    } else {
-                        $tempContact->setServiceNotificationOnUnknown($options->service_notification_options_unknown);
-                    }
-                    if (!array_key_exists('service_notification_options_warning', $options)) {
-                        $tempContact->setServiceNotificationOnWarning(0);
-                    } else {
-                        $tempContact->setServiceNotificationOnWarning($options->service_notification_options_warning);
-                    }
-                    if (!array_key_exists('can_submit_commands', $options)) {
-                        $tempContact->setCanSubmitCommands(0);
-                    } else {
-                        $tempContact->setCanSubmitCommands($options->can_submit_commands);
-                    }
-                    if (!array_key_exists('retain_status_information', $options)) {
-                        $tempContact->setRetainStatusInformation(0);
-                    } else {
-                        $tempContact->setRetainStatusInformation($options->retain_status_information);
-                    }
-                    if (!array_key_exists('retain_nonstatus_information', $options)) {
-                        $tempContact->setRetainNonstatusInformation(0);
-                    } else {
-                        $tempContact->setRetainNonstatusInformation($options->retain_nonstatus_information);
-                    }
-                    if (!array_key_exists('host_notifications_enabled', $options)) {
-                        $tempContact->setHostNotificationsEnabled(0);
-                    } else {
-                        $tempContact->setHostNotificationsEnabled($options->host_notifications_enabled);
-                    }
-                    if (!array_key_exists('service_notifications_enabled', $options)) {
-                        $tempContact->setServiceNotificationsEnabled(0);
-                    } else {
-                        $tempContact->setServiceNotificationsEnabled($options->service_notifications_enabled);
-                    }
-                }
                 $tempContact->save();
             } catch (Exception $e) {
                 $code = 1;
@@ -842,6 +841,7 @@ class RgmApiMethods
                 $newInheritance = new NagiosHostTemplateInheritance();
                 $newInheritance->setNagiosHost($tempHost);
                 $newInheritance->setNagiosHostTemplateRelatedByTargetTemplate($template_host);
+                $newInheritance->setOrder(0);
                 $newInheritance->save();
                 $success .= "Host Template " . $templateHostName . " added to host " . $hostName . "\n";
 
@@ -910,6 +910,7 @@ class RgmApiMethods
                 $error .= "The target template 'GENERIC_HOST' does not exit\n";
             } else {
                 $newInheritance = new NagiosHostTemplateInheritance();
+                $newInheritance->setOrder(0);
                 $newInheritance->setNagiosHostTemplateRelatedBySourceTemplate($template);
                 $newInheritance->setNagiosHostTemplateRelatedByTargetTemplate($targetTemplate);
                 try {
@@ -1967,6 +1968,7 @@ class RgmApiMethods
                     $newInheritance = new NagiosServiceTemplateInheritance();
                     $newInheritance->setNagiosService($tempService);
                     $newInheritance->setNagiosServiceTemplateRelatedByTargetTemplate($template);
+                    $newInheritance->setOrder(0);
                     $newInheritance->save();
                     $success .= "Service Template " . $service['inheritance'] . " added to service $service[name] \n";
                 }
@@ -2718,7 +2720,7 @@ class RgmApiMethods
     }
 
     /* LILAC - modify contact */
-    public function modifyContact($contactName, $newContactName = "", $contactAlias = "", $contactMail = "", $contactPager = "", $contactGroup = "", $serviceNotificationCommand = "", $hostNotificationCommand = "", $options = NULL, $exportConfiguration = FALSE)
+    public function modifyContact($contactName, $newContactName = "", $contactAlias = "", $contactMail = "", $contactPager = "", $contactGroup = "", $serviceNotificationCommand = "", $hostNotificationCommand = "", $options = Array(), $exportConfiguration = FALSE)
     {
         $error = "";
         $success = "";
@@ -3198,7 +3200,8 @@ class RgmApiMethods
                     } else {
                         $c = new Criteria();
                         $c->add(NagiosHostTemplateInheritancePeer::SOURCE_TEMPLATE, $template_host->getId());
-                        $c->add(NagiosHostTemplateInheritancePeer::TARGET_TEMPLATE, $targetInheritanceTemplate->getId());
+                        // Fix : $targetInheritanceTemplate is not defined
+                        // $c->add(NagiosHostTemplateInheritancePeer::TARGET_TEMPLATE, $targetInheritanceTemplate->getId());
                         $membership = NagiosHostTemplateInheritancePeer::doSelectOne($c);
                         if (!$membership) {
                             $newInheritance = new NagiosHostTemplateInheritance();
@@ -4848,10 +4851,10 @@ class RgmApiMethods
         $services = NagiosServicePeer::getByHostAndDescription($hostName, $service->name);
 
         if (!$host) {
-            $error .= "The host : '" . $host->getName() . "' doesn't exist";
+            $error .= "The host : '" . $hostName . "' doesn't exist";
         }
         if (!$services) {
-            $error .= "The service : '" . $services->name . "' doesn't exist";
+            $error .= "The service : '" . $service . "' doesn't exist";
         }
 
         if (isset($host) && isset($services)) {
@@ -4940,7 +4943,7 @@ class RgmApiMethods
         if ($backendid != NULL) {
             $sockets = array_slice($sockets, $backendid, 1);
         }
-        if (sizeof($sockets, 0) > 0) {
+        if (count($sockets) > 0) {
             foreach ($sockets as $socket) {
                 $socket_parts = explode(":", $socket);
                 $socket_type = $socket_parts[0];
