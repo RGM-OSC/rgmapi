@@ -2035,7 +2035,7 @@ class RgmApiMethods
     }
 
     /* LILAC - addEventBroker */
-    public function addEventBroker($broker, $exportConfiguration = FALSE)
+    public function addEventBroker($broker)
     {
         $error = "";
         $success = "";
@@ -2057,6 +2057,35 @@ class RgmApiMethods
                 $success .= "EventBroker added\n";
             } else {
                 $success .= "EventBroker already exists\n";
+            }
+        } catch (Exception $e) {
+            $error .= $e->getMessage() . "\n";
+        }
+
+        return $this->getLogs($error, $success);
+    }
+
+    /* LILAC - delEventBroker */
+    public function delEventBroker($broker)
+    {
+        $error = "";
+        $success = "";
+
+        try {
+            // Check if exist
+            $module_list = NagiosBrokerModulePeer::doSelect(new Criteria());
+            foreach ($module_list as $module) {
+                if ($module->getLine() == $broker) {
+                    $brokerExists = $module;
+                }
+            }
+
+            // Add broker
+            if (isset($brokerExists)) {
+                $brokerExists->delete();
+                $success .= "EventBroker deleted\n";
+            } else {
+                $success .= "EventBroker not exists\n";
             }
         } catch (Exception $e) {
             $error .= $e->getMessage() . "\n";
@@ -4443,35 +4472,6 @@ class RgmApiMethods
         $logs = $this->getLogs($error, $success);
 
         return array("code" => $code, "description" => $logs);
-    }
-
-    /* LILAC - delEventBroker */
-    public function delEventBroker($broker, $exportConfiguration = FALSE)
-    {
-        $error = "";
-        $success = "";
-
-        try {
-            // Check if exist
-            $module_list = NagiosBrokerModulePeer::doSelect(new Criteria());
-            foreach ($module_list as $module) {
-                if ($module->getLine() == $broker) {
-                    $brokerExists = $module;
-                }
-            }
-
-            // Add broker
-            if (isset($brokerExists)) {
-                $brokerExists->delete();
-                $success .= "EventBroker deleted\n";
-            } else {
-                $success .= "EventBroker not exists\n";
-            }
-        } catch (Exception $e) {
-            $error .= $e->getMessage() . "\n";
-        }
-
-        return $this->getLogs($error, $success);
     }
 
     /* LILAC - Delete Host Group */
